@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Rate Watcher</title>
+<style>
+  :root {
+    --green: #30D158;
+    --orange: #FF9F0A;
+    --red: #FF453A;
+    --bg: #0a0a0a;
+    --card: #1c1c1e;
+    --text: #f5f5f7;
+    --text-secondary: #86868b;
+    --border: #333;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .hero {
+    text-align: center;
+    padding: 80px 20px 60px;
+    background: linear-gradient(180deg, #1a1a2e 0%, var(--bg) 100%);
+  }
+  .hero-icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #1c1c1e, #2c2c2e);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+  }
+  .hero-icon svg { width: 56px; height: 56px; }
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    max-width: 520px;
+    margin: 0 auto 32px;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    background: var(--green);
+    color: #000;
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  .download-btn:hover { opacity: 0.85; }
+  .download-btn svg { width: 20px; height: 20px; }
+  .download-meta {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  section { padding: 48px 0; }
+  section + section { border-top: 1px solid var(--border); }
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 540px) { .features { grid-template-columns: 1fr; } }
+  .feature {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .feature-icon {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+  }
+  .feature h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .feature p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  .install-steps {
+    list-style: none;
+    counter-reset: step;
+  }
+  .install-steps li {
+    counter-increment: step;
+    padding: 12px 0 12px 40px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+  .install-steps li:last-child { border-bottom: none; }
+  .install-steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    text-align: center;
+    line-height: 26px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--green);
+  }
+  code {
+    background: var(--card);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    border: 1px solid var(--border);
+  }
+
+  .screenshot-placeholder {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-top: 20px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+  }
+  footer a { color: var(--green); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-icon">
+    <svg viewBox="0 0 56 56" fill="none">
+      <circle cx="28" cy="28" r="20" stroke="#30D158" stroke-width="4" stroke-linecap="round"
+              stroke-dasharray="100 26" />
+      <circle cx="28" cy="28" r="6" fill="#30D158" />
+    </svg>
+  </div>
+  <h1>Claude Code Rate Watcher</h1>
+  <p class="subtitle">Claude Code の API レート使用量をメニューバーからリアルタイム監視する macOS アプリ</p>
+  <a class="download-btn"
+     href="https://github.com/NicoValentine7/claude-code-rate-watcher/releases/latest">
+    <svg viewBox="0 0 20 20" fill="currentColor">
+      <path d="M10 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V4a1 1 0 011-1z"/>
+      <path d="M3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
+    </svg>
+    Download for macOS
+  </a>
+  <p class="download-meta">macOS Universal (Apple Silicon + Intel)</p>
+</div>
+
+<div class="container">
+  <section>
+    <h2>Features</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true">&#x1F4CA;</div>
+        <h3>5 時間ウィンドウ追跡</h3>
+        <p>5 時間のスライディングウィンドウでトークン使用量をリアルタイム表示</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true">&#x1F4C5;</div>
+        <h3>週次制限モニタリング</h3>
+        <p>168 時間の週次トークン使用量も同時に追跡</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true">&#x1F514;</div>
+        <h3>閾値アラート</h3>
+        <p>使用量が 75% / 90% を超えると macOS 通知でお知らせ</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true">&#x23F1;&#xFE0F;</div>
+        <h3>リセットカウントダウン</h3>
+        <p>レート制限のリセットまでの残り時間をカウントダウン表示</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Screenshot</h2>
+    <div class="screenshot-placeholder">
+      スクリーンショットをここに追加
+    </div>
+  </section>
+
+  <section>
+    <h2>Install</h2>
+    <ol class="install-steps">
+      <li>上のボタンから <code>claude-code-rate-watcher-macos-universal.tar.gz</code> をダウンロード</li>
+      <li>ダブルクリックで展開し、バイナリを <code>/usr/local/bin/</code> 等に配置</li>
+      <li>ターミナルから <code>claude-code-rate-watcher</code> を実行、またはログイン項目に追加</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>How it Works</h2>
+    <p style="color:var(--text-secondary);">
+      <code>~/.claude/projects/</code> 配下の JSONL セッションファイルを監視し、
+      assistant レスポンスのトークン使用量を集計します。
+      出力トークンはコスト換算で入力の 5 倍として加重計算されます。
+    </p>
+  </section>
+</div>
+
+<footer>
+  <p><a href="https://github.com/NicoValentine7/claude-code-rate-watcher">GitHub</a></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,160 @@
+mod file_watcher;
+mod icon;
+mod notification;
+mod session_parser;
+mod tray;
+mod usage_tracker;
+
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
+
+use tao::dpi::{LogicalSize, PhysicalPosition};
+use tao::event::{Event, WindowEvent};
+use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use tao::window::WindowBuilder;
+use tray_icon::TrayIconEvent;
+use wry::WebViewBuilder;
+
+enum AppEvent {
+    FileChanged,
+    TimerTick,
+}
+
+const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
+const POPOVER_WIDTH: f64 = 340.0;
+const POPOVER_HEIGHT: f64 = 470.0;
+
+fn main() {
+    let event_loop = EventLoopBuilder::<AppEvent>::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+
+    // --- Popover window (borderless, hidden initially) ---
+    let window = WindowBuilder::new()
+        .with_decorations(false)
+        .with_transparent(true)
+        .with_always_on_top(true)
+        .with_resizable(false)
+        .with_visible(false)
+        .with_inner_size(LogicalSize::new(POPOVER_WIDTH, POPOVER_HEIGHT))
+        .with_title("Claude Rate Watcher")
+        .build(&event_loop)
+        .expect("Failed to create window");
+
+    // --- WebView inside the popover ---
+    let html = include_str!("popover.html");
+
+    let proxy_ipc = proxy.clone();
+    let webview = WebViewBuilder::new()
+        .with_transparent(true)
+        .with_html(html)
+        .with_ipc_handler(move |msg| {
+            if msg.body() == "quit" {
+                // Send a quit signal — we can't exit from here directly
+                // because the event loop owns the process.
+                std::process::exit(0);
+            }
+            let _ = &proxy_ipc; // keep proxy alive
+        })
+        .build(&window)
+        .expect("Failed to create webview");
+
+    // --- Tray icon (menu bar) ---
+    let tray_app = tray::TrayApp::new();
+
+    // --- Notification state ---
+    let mut notifier = notification::NotificationState::new();
+
+    // --- Initial data load ---
+    let mut all_records = session_parser::load_all_sessions();
+    let summary = usage_tracker::calculate_usage(&all_records);
+    tray_app.update_percent(summary.usage_percent);
+    push_to_webview(&webview, &summary);
+    let mut last_reload = Instant::now();
+
+    // --- File watcher ---
+    let (tx, rx) = mpsc::channel();
+    let _watcher = file_watcher::start_watcher(tx);
+
+    let proxy_watcher = proxy.clone();
+    std::thread::spawn(move || {
+        while rx.recv().is_ok() {
+            let _ = proxy_watcher.send_event(AppEvent::FileChanged);
+        }
+    });
+
+    // --- Timer (30s tick for countdown updates) ---
+    let proxy_timer = proxy.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(30));
+        let _ = proxy_timer.send_event(AppEvent::TimerTick);
+    });
+
+    // --- Event receivers ---
+    let tray_channel = TrayIconEvent::receiver();
+    let mut popover_visible = false;
+
+    // --- Main event loop ---
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(100));
+
+        // Tray icon click → toggle popover
+        if let Ok(TrayIconEvent::Click {
+            button: tray_icon::MouseButton::Left,
+            button_state: tray_icon::MouseButtonState::Up,
+            rect,
+            ..
+        }) = tray_channel.try_recv()
+        {
+            popover_visible = !popover_visible;
+            if popover_visible {
+                // Position below the tray icon, centered horizontally
+                let x = rect.position.x + (rect.size.width as f64 / 2.0) - (POPOVER_WIDTH / 2.0);
+                let y = rect.position.y + rect.size.height as f64 + 4.0;
+                window.set_outer_position(PhysicalPosition::new(x, y));
+                window.set_visible(true);
+                window.set_focus();
+            } else {
+                window.set_visible(false);
+            }
+        }
+
+        match event {
+            // Hide popover when it loses focus
+            Event::WindowEvent {
+                event: WindowEvent::Focused(false),
+                ..
+            } => {
+                popover_visible = false;
+                window.set_visible(false);
+            }
+
+            Event::UserEvent(AppEvent::FileChanged) => {
+                if last_reload.elapsed() < DEBOUNCE_INTERVAL {
+                    return;
+                }
+                last_reload = Instant::now();
+
+                all_records = session_parser::load_all_sessions();
+                let summary = usage_tracker::calculate_usage(&all_records);
+                tray_app.update_percent(summary.usage_percent);
+                push_to_webview(&webview, &summary);
+                notifier.check_and_notify(summary.usage_percent);
+            }
+
+            Event::UserEvent(AppEvent::TimerTick) => {
+                let summary = usage_tracker::calculate_usage(&all_records);
+                tray_app.update_percent(summary.usage_percent);
+                push_to_webview(&webview, &summary);
+            }
+
+            _ => {}
+        }
+    });
+}
+
+fn push_to_webview(webview: &wry::WebView, summary: &usage_tracker::UsageSummary) {
+    let payload = summary.to_payload();
+    if let Ok(json) = serde_json::to_string(&payload) {
+        let _ = webview.evaluate_script(&format!("updateData({})", json));
+    }
+}
