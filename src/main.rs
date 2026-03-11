@@ -105,6 +105,10 @@ fn main() {
     let effective_pct = api_data.five_hour_percent.unwrap_or(0);
     tray_app.update_percent(effective_pct);
     push_to_webview(&webview, &summary, &api_data);
+    // Enable auto-launch by default on first run
+    if !autolaunch::is_enabled() {
+        let _ = autolaunch::enable();
+    }
     let autolaunch_enabled = autolaunch::is_enabled();
     let _ = webview.evaluate_script(&format!("setAutoLaunch({})", autolaunch_enabled));
     let mut last_reload = Instant::now();

@@ -43,7 +43,14 @@ main.rs              - イベントループ、ウィンドウ管理、IPC
 
 ```bash
 cargo build --release    # リリースビルド
-cargo run                # 開発実行
+cargo run                # 開発実行（バイナリ名: ccrw）
+```
+
+## Install
+
+```bash
+brew install NicoValentine7/tap/claude-code-rate-watcher
+ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効化される）
 ```
 
 ## Release Process
@@ -57,12 +64,8 @@ cargo run                # 開発実行
    ```
 4. GitHub Actions (`.github/workflows/release.yml`) が自動実行:
    - aarch64 + x86_64 のクロスビルド
-   - `lipo` でユニバーサルバイナリ作成
-   - `.app` バンドル作成（`Info.plist` + ユニバーサルバイナリ、`LSUIElement=true`）
-   - Ad-hoc コード署名（`codesign --force --deep -s -`）
-   - `claude-code-rate-watcher-macos-universal.tar.gz`（auto-updater 用）として GitHub Releases に公開
-   - `claude-code-rate-watcher.dmg`（初回インストール用、.app + /Applications シンボリックリンク）も公開
-   - `claude-code-rate-watcher.pkg`（初回インストール用、pkgbuild で生成）も公開
+   - `lipo` でユニバーサルバイナリ（`ccrw`）作成
+   - `claude-code-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
    - `softprops/action-gh-release@v2` でリリースノート自動生成
 
 ### リリースタイミング
@@ -97,6 +100,7 @@ cargo run                # 開発実行
 - リポジトリ: `NicoValentine7/homebrew-tap`
 - Formula: `Formula/claude-code-rate-watcher.rb`
 - インストール: `brew install NicoValentine7/tap/claude-code-rate-watcher`
+- コマンド名: `ccrw`
 - **リリース時**: tarball の sha256 を計算して Formula を更新する必要あり
   ```bash
   shasum -a 256 claude-code-rate-watcher-macos-universal.tar.gz
@@ -105,10 +109,9 @@ cargo run                # 開発実行
 
 ### インストール先
 
-- DMG: `/Applications/Claude Code Rate Watcher.app`（ドラッグ&ドロップ）
-- Homebrew: `/opt/homebrew/bin/claude-code-rate-watcher`（Apple Silicon）/ `/usr/local/bin/claude-code-rate-watcher`（Intel）
+- Homebrew: `/opt/homebrew/bin/ccrw`（Apple Silicon）/ `/usr/local/bin/ccrw`（Intel）
 - LaunchAgent plist: `~/Library/LaunchAgents/com.claude-code-rate-watcher.plist`
-- ログイン時自動起動: popover の「Launch at Login」トグルで ON/OFF
+- ログイン時自動起動: 初回起動時にデフォルトで有効化（popover のトグルで OFF 可能）
 
 ## Data Source
 

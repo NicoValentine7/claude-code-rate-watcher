@@ -150,7 +150,7 @@ pub fn is_homebrew_install() -> bool {
 fn current_binary_path() -> Result<PathBuf, String> {
     if is_homebrew_install() {
         return Err(
-            "Auto-update disabled for Homebrew installs. Use `brew upgrade claude-code-rate-watcher`."
+            "Auto-update disabled for Homebrew installs. Use `brew upgrade NicoValentine7/tap/claude-code-rate-watcher`."
                 .to_string(),
         );
     }
@@ -180,9 +180,14 @@ fn extract_binary(tarball: &[u8]) -> Result<PathBuf, String> {
 
     archive.unpack(&tmp_dir).map_err(|e| format!("extract failed: {}", e))?;
 
-    let binary = tmp_dir.join("claude-code-rate-watcher");
+    // Try new name first, then legacy name for backward compatibility
+    let binary = tmp_dir.join("ccrw");
     if binary.exists() {
-        Ok(binary)
+        return Ok(binary);
+    }
+    let legacy = tmp_dir.join("claude-code-rate-watcher");
+    if legacy.exists() {
+        Ok(legacy)
     } else {
         Err("binary not found in tarball".to_string())
     }
