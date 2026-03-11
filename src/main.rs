@@ -1,6 +1,7 @@
 mod api_client;
 mod auth;
 mod autolaunch;
+mod codex_parser;
 mod file_watcher;
 mod icon;
 mod notification;
@@ -27,7 +28,7 @@ enum AppEvent {
 
 const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
 const POPOVER_WIDTH: f64 = 340.0;
-const POPOVER_HEIGHT: f64 = 470.0;
+const POPOVER_HEIGHT: f64 = 530.0;
 
 fn main() {
     let event_loop = EventLoopBuilder::<AppEvent>::with_user_event().build();
@@ -102,9 +103,11 @@ fn main() {
     let mut all_records = session_parser::load_all_sessions();
     let summary = usage_tracker::calculate_usage(&all_records);
     let api_data = api_poller.get_data();
-    let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-    tray_app.update_percent(effective_pct);
-    push_to_webview(&webview, &summary, &api_data);
+    let codex_data = codex_parser::load_latest_usage();
+    let claude_pct = api_data.five_hour_percent.unwrap_or(0);
+    let codex_pct = codex_data.as_ref().and_then(|c| c.primary_percent).unwrap_or(0);
+    tray_app.update_percent(claude_pct, codex_pct);
+    push_to_webview(&webview, &summary, &api_data, codex_data);
     let autolaunch_enabled = autolaunch::is_enabled();
     let _ = webview.evaluate_script(&format!("setAutoLaunch({})", autolaunch_enabled));
     let mut last_reload = Instant::now();
@@ -194,19 +197,24 @@ fn main() {
                 let summary = usage_tracker::calculate_usage(&all_records);
                 api_poller.poll();
                 let api_data = api_poller.get_data();
-                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                tray_app.update_percent(effective_pct);
-                push_to_webview(&webview, &summary, &api_data);
-                notifier.check_and_notify(effective_pct);
+                let codex_data = codex_parser::load_latest_usage();
+                let claude_pct = api_data.five_hour_percent.unwrap_or(0);
+                let codex_pct = codex_data.as_ref().and_then(|c| c.primary_percent).unwrap_or(0);
+                tray_app.update_percent(claude_pct, codex_pct);
+                push_to_webview(&webview, &summary, &api_data, codex_data);
+                notifier.check_and_notify(claude_pct);
+                notifier.check_and_notify_codex(codex_pct);
             }
 
             Event::UserEvent(AppEvent::TimerTick) => {
                 let summary = usage_tracker::calculate_usage(&all_records);
                 api_poller.poll();
                 let api_data = api_poller.get_data();
-                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                tray_app.update_percent(effective_pct);
-                push_to_webview(&webview, &summary, &api_data);
+                let codex_data = codex_parser::load_latest_usage();
+                let claude_pct = api_data.five_hour_percent.unwrap_or(0);
+                let codex_pct = codex_data.as_ref().and_then(|c| c.primary_percent).unwrap_or(0);
+                tray_app.update_percent(claude_pct, codex_pct);
+                push_to_webview(&webview, &summary, &api_data, codex_data);
             }
 
             Event::UserEvent(AppEvent::UpdateAvailable(ref info)) => {
@@ -226,8 +234,9 @@ fn push_to_webview(
     webview: &wry::WebView,
     summary: &usage_tracker::UsageSummary,
     api_data: &api_client::ApiRateLimitData,
+    codex_data: Option<codex_parser::CodexUsage>,
 ) {
-    let payload = summary.to_payload(api_data);
+    let payload = summary.to_payload(api_data, codex_data);
     if let Ok(json) = serde_json::to_string(&payload) {
         let _ = webview.evaluate_script(&format!("updateData({})", json));
     }
