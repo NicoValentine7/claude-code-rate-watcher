@@ -62,6 +62,7 @@ cargo run                # 開発実行
    - Ad-hoc コード署名（`codesign --force --deep -s -`）
    - `claude-code-rate-watcher-macos-universal.tar.gz`（auto-updater 用）として GitHub Releases に公開
    - `claude-code-rate-watcher.dmg`（初回インストール用、.app + /Applications シンボリックリンク）も公開
+   - `claude-code-rate-watcher.pkg`（初回インストール用、pkgbuild で生成）も公開
    - `softprops/action-gh-release@v2` でリリースノート自動生成
 
 ### リリースタイミング

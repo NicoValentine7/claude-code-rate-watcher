@@ -135,7 +135,7 @@
     <ol>
       <li data-i18n="s1"></li>
       <li data-i18n="s2"></li>
-      <li><span data-i18n="s3"></span><code>xattr -cr "/Applications/Claude Code Rate Watcher.app"</code></li>
+      <li><span data-i18n="s3"></span><code>xattr -d com.apple.quarantine ~/Downloads/claude-code-rate-watcher.pkg</code></li>
       <li data-i18n="s4"></li>
     </ol>
   </div>
@@ -145,16 +145,16 @@
 </div>
 
 <script>
-const DOWNLOAD_URL = "https://github.com/NicoValentine7/claude-code-rate-watcher/releases/latest/download/claude-code-rate-watcher.dmg";
+const DOWNLOAD_URL = "https://github.com/NicoValentine7/claude-code-rate-watcher/releases/latest/download/claude-code-rate-watcher.pkg";
 
 const i18n = {
   en: {
     title: "Thank you!",
     desc: "Your download should start automatically.",
     "steps-title": "Next steps",
-    s1: "Open the downloaded .dmg file.",
-    s2: "Drag the app to the Applications folder.",
-    s3: "If macOS blocks the app, run this in Terminal:",
+    s1: "Open the downloaded .pkg file.",
+    s2: "Follow the installer instructions.",
+    s3: "If macOS blocks the installer, run this in Terminal:",
     s4: "Launch the app — it appears in your menu bar.",
     retry: 'Download not starting? <a href="' + DOWNLOAD_URL + '">Click here</a>',
     back: "Back to home",
@@ -163,8 +163,8 @@ const i18n = {
     title: "ありがとうございます！",
     desc: "ダウンロードが自動的に開始されます。",
     "steps-title": "次のステップ",
-    s1: "ダウンロードした .dmg ファイルを開く",
-    s2: "アプリを Applications フォルダにドラッグ",
+    s1: "ダウンロードした .pkg ファイルを開く",
+    s2: "インストーラの指示に従う",
     s3: "macOS がブロックする場合、ターミナルで以下を実行：",
     s4: "アプリを起動 — メニューバーに表示されます",
     retry: 'ダウンロードが始まらない場合は<a href="' + DOWNLOAD_URL + '">こちら</a>',

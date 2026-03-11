@@ -80,10 +80,20 @@ jobs:
             -ov -format UDZO \
             claude-code-rate-watcher.dmg
 
+      - name: Create .pkg installer
+        run: |
+          pkgbuild \
+            --root "Claude Code Rate Watcher.app" \
+            --identifier com.claude-code-rate-watcher \
+            --version "${GITHUB_REF_NAME#v}" \
+            --install-location "/Applications/Claude Code Rate Watcher.app" \
+            claude-code-rate-watcher.pkg
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             claude-code-rate-watcher-macos-universal.tar.gz
             claude-code-rate-watcher.dmg
+            claude-code-rate-watcher.pkg
           generate_release_notes: true
