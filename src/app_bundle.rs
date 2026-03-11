@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 const APP_NAME: &str = "Claude Code Rate Watcher";
 const BUNDLE_ID: &str = "com.claude-code-rate-watcher";
+const APP_ICON: &[u8] = include_bytes!("../assets/AppIcon.icns");
 
 fn app_path() -> PathBuf {
     PathBuf::from(format!("/Applications/{}.app", APP_NAME))
@@ -57,7 +58,12 @@ fn create_app_bundle(
         fs::remove_dir_all(app).map_err(|e| e.to_string())?;
     }
 
+    let resources_dir = app.join("Contents/Resources");
     fs::create_dir_all(macos_dir).map_err(|e| e.to_string())?;
+    fs::create_dir_all(&resources_dir).map_err(|e| e.to_string())?;
+
+    // App icon
+    fs::write(resources_dir.join("AppIcon.icns"), APP_ICON).map_err(|e| e.to_string())?;
 
     // Info.plist
     let plist = format!(
@@ -79,6 +85,8 @@ fn create_app_bundle(
   <string>launcher</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>LSUIElement</key>
   <true/>
 </dict>
