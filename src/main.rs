@@ -1,14 +1,10 @@
 mod api_client;
 mod auth;
 mod autolaunch;
-mod dashboard;
 mod file_watcher;
-mod history_recorder;
 mod icon;
 mod notification;
 mod session_parser;
-mod supabase_auth;
-mod supabase_client;
 mod tray;
 mod updater;
 mod usage_tracker;
@@ -23,14 +19,10 @@ use tao::window::WindowBuilder;
 use tray_icon::TrayIconEvent;
 use wry::WebViewBuilder;
 
-pub enum AppEvent {
+enum AppEvent {
     FileChanged,
     TimerTick,
     UpdateAvailable(updater::UpdateInfo),
-    OpenDashboard,
-    SnapshotTick,
-    AuthCompleted(supabase_auth::SupabaseSession),
-    AuthFailed(String),
 }
 
 const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
@@ -89,11 +81,9 @@ fn main() {
                         });
                     }
                 }
-                "open_dashboard" => {
-                    let _ = proxy_ipc.send_event(AppEvent::OpenDashboard);
-                }
                 _ => {}
             }
+            let _ = &proxy_ipc; // keep proxy alive
         })
         .build(&window)
         .expect("Failed to create webview");
@@ -107,9 +97,6 @@ fn main() {
     // --- API poller (fetches real rate limit data) ---
     let api_poller = api_client::ApiPoller::new();
     api_poller.poll(); // Initial fetch
-
-    // --- History recorder ---
-    let mut history_recorder = history_recorder::HistoryRecorder::new();
 
     // --- Initial data load ---
     let mut all_records = session_parser::load_all_sessions();
@@ -140,13 +127,6 @@ fn main() {
         let _ = proxy_timer.send_event(AppEvent::TimerTick);
     });
 
-    // --- Snapshot timer (1h for periodic snapshots) ---
-    let proxy_snapshot = proxy.clone();
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_secs(3600));
-        let _ = proxy_snapshot.send_event(AppEvent::SnapshotTick);
-    });
-
     // --- Update checker thread ---
     let proxy_update = proxy.clone();
     let updater_clone = app_updater.clone();
@@ -168,10 +148,9 @@ fn main() {
     // --- Event receivers ---
     let tray_channel = TrayIconEvent::receiver();
     let mut popover_visible = false;
-    let mut dashboard_state: Option<dashboard::Dashboard> = None;
 
     // --- Main event loop ---
-    event_loop.run(move |event, event_loop_target, control_flow| {
+    event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(100));
 
         // Tray icon click → toggle popover
@@ -196,27 +175,13 @@ fn main() {
         }
 
         match event {
-            // Hide popover when it loses focus (but not the dashboard)
+            // Hide popover when it loses focus
             Event::WindowEvent {
                 event: WindowEvent::Focused(false),
-                window_id,
-                ..
-            } if window_id == window.id() => {
-                popover_visible = false;
-                window.set_visible(false);
-            }
-
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
                 ..
             } => {
-                // If dashboard window is closed, drop it
-                if let Some(ref dash) = dashboard_state {
-                    if window_id == dash.window_id() {
-                        dashboard_state = None;
-                    }
-                }
+                popover_visible = false;
+                window.set_visible(false);
             }
 
             Event::UserEvent(AppEvent::FileChanged) => {
@@ -230,20 +195,9 @@ fn main() {
                 api_poller.poll();
                 let api_data = api_poller.get_data();
                 let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                let weekly_pct = api_data.seven_day_percent.unwrap_or(0);
                 tray_app.update_percent(effective_pct);
                 push_to_webview(&webview, &summary, &api_data);
                 notifier.check_and_notify(effective_pct);
-
-                // Feed history recorder
-                history_recorder.on_data_update(
-                    effective_pct,
-                    weekly_pct,
-                    summary.reset_time,
-                    Some(summary.total_tokens() as i64),
-                    Some(summary.weekly_total_tokens() as i64),
-                    api_data.is_live,
-                );
             }
 
             Event::UserEvent(AppEvent::TimerTick) => {
@@ -251,48 +205,8 @@ fn main() {
                 api_poller.poll();
                 let api_data = api_poller.get_data();
                 let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                let weekly_pct = api_data.seven_day_percent.unwrap_or(0);
                 tray_app.update_percent(effective_pct);
                 push_to_webview(&webview, &summary, &api_data);
-
-                // Feed history recorder
-                history_recorder.on_data_update(
-                    effective_pct,
-                    weekly_pct,
-                    summary.reset_time,
-                    Some(summary.total_tokens() as i64),
-                    Some(summary.weekly_total_tokens() as i64),
-                    api_data.is_live,
-                );
-
-                // Flush pending snapshots in background
-                history_recorder.flush();
-            }
-
-            Event::UserEvent(AppEvent::SnapshotTick) => {
-                let summary = usage_tracker::calculate_usage(&all_records);
-                let api_data = api_poller.get_data();
-                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                let weekly_pct = api_data.seven_day_percent.unwrap_or(0);
-
-                history_recorder.record_periodic(
-                    effective_pct,
-                    weekly_pct,
-                    Some(summary.total_tokens() as i64),
-                    Some(summary.weekly_total_tokens() as i64),
-                    api_data.is_live,
-                );
-                history_recorder.flush();
-            }
-
-            Event::UserEvent(AppEvent::OpenDashboard) => {
-                if let Some(ref dash) = dashboard_state {
-                    dash.show();
-                } else {
-                    let dash = dashboard::Dashboard::new(event_loop_target);
-                    dash.refresh_history();
-                    dashboard_state = Some(dash);
-                }
             }
 
             Event::UserEvent(AppEvent::UpdateAvailable(ref info)) => {
@@ -301,19 +215,6 @@ fn main() {
                     info.version.replace('\'', "\\'")
                 );
                 let _ = webview.evaluate_script(&js);
-            }
-
-            Event::UserEvent(AppEvent::AuthCompleted(ref _session)) => {
-                if let Some(ref dash) = dashboard_state {
-                    dash.update_auth_state();
-                    dash.refresh_history();
-                }
-                // Flush any pending snapshots
-                history_recorder.flush();
-            }
-
-            Event::UserEvent(AppEvent::AuthFailed(ref msg)) => {
-                eprintln!("[main] Auth failed: {}", msg);
             }
 
             _ => {}
