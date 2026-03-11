@@ -61,6 +61,12 @@ cargo run                # 開発実行
    - `claude-code-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
    - `softprops/action-gh-release@v2` でリリースノート自動生成
 
+### リリースタイミング
+
+- **`src/` 配下の Rust コードに変更があった場合は必ずリリースする**（バージョンを上げてタグをプッシュ）
+- `docs/` のみの変更（リリースページの見た目変更等）はリリース不要（Pages が自動デプロイされる）
+- PR マージ後にコード変更が含まれていた場合もリリースを忘れないこと
+
 ### 重要な注意点
 
 - **バージョンとタグは必ず一致させる**: `Cargo.toml` の version が `0.3.0` ならタグは `v0.3.0`
