@@ -83,26 +83,6 @@
     margin: 0 auto 32px;
   }
 
-  .download-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 32px;
-    background: var(--green);
-    color: #000;
-    text-decoration: none;
-    border-radius: 12px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    transition: opacity 0.2s;
-  }
-  .download-btn:hover { opacity: 0.85; }
-  .download-btn svg { width: 20px; height: 20px; }
-  .download-meta {
-    margin-top: 10px;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-  }
 
   .container {
     max-width: 720px;
@@ -235,18 +215,6 @@
       <h3>Homebrew</h3>
       <code style="display:block; background:#111; border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-top:8px; font-family:'SF Mono',Menlo,monospace; font-size:0.88rem; color:var(--green); user-select:all;">brew install NicoValentine7/tap/claude-code-rate-watcher</code>
     </div>
-    <div class="feature">
-      <div class="feature-icon" aria-hidden="true">&#x1F4E6;</div>
-      <h3 data-i18n="install-dmg-title"></h3>
-      <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;" data-i18n="install-dmg-desc"></p>
-      <a class="download-btn" href="thanks.html" style="font-size: 0.9rem; padding: 10px 24px;">
-        <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px;">
-          <path d="M10 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V4a1 1 0 011-1z"/>
-          <path d="M3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
-        </svg>
-        <span data-i18n="install-dmg-btn"></span>
-      </a>
-    </div>
   </section>
 
 </div>
@@ -273,9 +241,6 @@ const i18n = {
     "f6-title": "Launch at Login",
     "f6-desc": "Toggle auto-start at login from the popover. Uses macOS LaunchAgent.",
     "install-title": "Install",
-    "install-dmg-title": "Direct Download",
-    "install-dmg-desc": "macOS Universal (Apple Silicon + Intel)",
-    "install-dmg-btn": "Download .dmg",
   },
   ja: {
     subtitle: "Claude Code の API レート使用量をメニューバーからリアルタイム監視する macOS アプリ",
@@ -293,9 +258,6 @@ const i18n = {
     "f6-title": "ログイン時に起動",
     "f6-desc": "ポップオーバーからログイン時の自動起動を切り替え（macOS LaunchAgent）",
     "install-title": "インストール",
-    "install-dmg-title": "直接ダウンロード",
-    "install-dmg-desc": "macOS Universal (Apple Silicon + Intel)",
-    "install-dmg-btn": "Download .dmg",
   }
 };
 
