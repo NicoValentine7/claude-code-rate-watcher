@@ -145,49 +145,17 @@
     color: var(--text-secondary);
   }
 
-  .install-steps {
-    list-style: none;
-    counter-reset: step;
-  }
-  .install-steps li {
-    counter-increment: step;
-    padding: 12px 0 12px 40px;
-    position: relative;
-    border-bottom: 1px solid var(--border);
-  }
-  .install-steps li:last-child { border-bottom: none; }
-  .install-steps li::before {
-    content: counter(step);
-    position: absolute;
-    left: 0;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: var(--card);
-    border: 1px solid var(--border);
-    text-align: center;
-    line-height: 26px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--green);
-  }
-  code {
-    background: var(--card);
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.9em;
-    border: 1px solid var(--border);
-  }
 
-  .screenshot-placeholder {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 60px 20px;
+  .hero-screenshot {
+    margin-top: 40px;
     text-align: center;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    margin-top: 20px;
+  }
+  .hero-screenshot img {
+    max-width: 420px;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   }
 
   footer {
@@ -227,6 +195,9 @@
     <span data-i18n="download-btn"></span>
   </a>
   <p class="download-meta" data-i18n="download-meta"></p>
+  <div class="hero-screenshot">
+    <img src="screenshot.png" alt="Claude Code Rate Watcher screenshot" loading="lazy">
+  </div>
 </div>
 
 <div class="container">
@@ -266,24 +237,6 @@
     </div>
   </section>
 
-  <section>
-    <h2 data-i18n="screenshot-title"></h2>
-    <div class="screenshot-placeholder" data-i18n="screenshot-placeholder"></div>
-  </section>
-
-  <section>
-    <h2 data-i18n="install-title"></h2>
-    <ol class="install-steps">
-      <li data-i18n="install-1"></li>
-      <li data-i18n="install-2"></li>
-      <li data-i18n="install-3"></li>
-    </ol>
-  </section>
-
-  <section>
-    <h2 data-i18n="how-title"></h2>
-    <p style="color:var(--text-secondary);" data-i18n="how-desc"></p>
-  </section>
 </div>
 
 <footer>
@@ -309,14 +262,6 @@ const i18n = {
     "f5-desc": "Checks GitHub Releases for new versions and updates automatically with one click.",
     "f6-title": "Launch at Login",
     "f6-desc": "Toggle auto-start at login from the popover. Uses macOS LaunchAgent.",
-    "screenshot-title": "Screenshot",
-    "screenshot-placeholder": "Screenshot coming soon",
-    "install-title": "Install",
-    "install-1": 'Download <code>claude-code-rate-watcher-macos-universal.tar.gz</code> from the button above.',
-    "install-2": 'Extract the archive and place the binary in <code>~/Applications/</code>.',
-    "install-3": 'Run <code>~/Applications/claude-code-rate-watcher</code> and enable "Launch at Login" from the popover.',
-    "how-title": "How it Works",
-    "how-desc": 'Monitors JSONL session files under <code>~/.claude/projects/</code> and aggregates token usage from assistant responses. Output tokens are weighted at 5× input for cost-equivalent calculation.',
   },
   ja: {
     subtitle: "Claude Code の API レート使用量をメニューバーからリアルタイム監視する macOS アプリ",
@@ -335,14 +280,6 @@ const i18n = {
     "f5-desc": "GitHub Releases から最新バージョンを検出し、ワンクリックで自動更新",
     "f6-title": "ログイン時に起動",
     "f6-desc": "ポップオーバーからログイン時の自動起動を切り替え（macOS LaunchAgent）",
-    "screenshot-title": "Screenshot",
-    "screenshot-placeholder": "スクリーンショットをここに追加",
-    "install-title": "Install",
-    "install-1": '上のボタンから <code>claude-code-rate-watcher-macos-universal.tar.gz</code> をダウンロード',
-    "install-2": 'ダブルクリックで展開し、バイナリを <code>~/Applications/</code> に配置',
-    "install-3": '<code>~/Applications/claude-code-rate-watcher</code> を実行し、ポップオーバーから「Launch at Login」を有効化',
-    "how-title": "How it Works",
-    "how-desc": '<code>~/.claude/projects/</code> 配下の JSONL セッションファイルを監視し、assistant レスポンスのトークン使用量を集計します。出力トークンはコスト換算で入力の 5 倍として加重計算されます。',
   }
 };
 
