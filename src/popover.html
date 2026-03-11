@@ -432,9 +432,9 @@
     </div>
 
     <!-- Update banner -->
-    <div class="update-banner" id="update-banner" onclick="window.ipc.postMessage('apply_update')">
+    <div class="update-banner" id="update-banner" onclick="applyUpdate()">
       <span class="update-banner-text" id="update-text">Update available</span>
-      <button class="update-banner-action">Update</button>
+      <button class="update-banner-action" id="update-btn">Update</button>
     </div>
 
     <!-- Auth required state -->
@@ -686,6 +686,16 @@ function toggleTokenDetails() {
     details.className = 'detail-rows expanded';
     chevron.className = 'chevron expanded';
   }
+}
+
+function applyUpdate() {
+  var btn = document.getElementById('update-btn');
+  var text = document.getElementById('update-text');
+  btn.textContent = 'Updating...';
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+  text.textContent = 'Downloading and installing...';
+  window.ipc.postMessage('apply_update');
 }
 
 function toggleErrorDetails() {

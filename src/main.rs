@@ -81,7 +81,23 @@ fn main() {
                     let _ = autolaunch::toggle();
                 }
                 "apply_update" => {
-                    if let Some(info) = updater_ipc.get_available() {
+                    if updater::is_homebrew_install() {
+                        // Homebrew install: run brew upgrade in background, then restart
+                        std::thread::spawn(|| {
+                            let status = std::process::Command::new("brew")
+                                .args(["upgrade", "NicoValentine7/tap/claude-code-rate-watcher"])
+                                .status();
+                            match status {
+                                Ok(s) if s.success() => {
+                                    // Restart with the upgraded binary
+                                    let binary = std::env::current_exe().unwrap();
+                                    updater::restart_app(&binary);
+                                }
+                                Ok(s) => eprintln!("brew upgrade exited with: {}", s),
+                                Err(e) => eprintln!("brew upgrade failed: {}", e),
+                            }
+                        });
+                    } else if let Some(info) = updater_ipc.get_available() {
                         std::thread::spawn(move || {
                             if let Err(e) = updater::Updater::apply_update(&info) {
                                 eprintln!("Update failed: {}", e);

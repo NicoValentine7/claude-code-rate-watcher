@@ -194,6 +194,10 @@ fn extract_binary(tarball: &[u8]) -> Result<PathBuf, String> {
 }
 
 fn restart(binary: &PathBuf) -> ! {
+    restart_app(binary);
+}
+
+pub fn restart_app(binary: &PathBuf) -> ! {
     use std::os::unix::process::CommandExt;
     let err = std::process::Command::new(binary).exec();
     eprintln!("restart failed: {}", err);
