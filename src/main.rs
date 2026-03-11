@@ -1,4 +1,5 @@
 mod api_client;
+mod app_bundle;
 mod auth;
 mod autolaunch;
 mod file_watcher;
@@ -36,6 +37,9 @@ fn main() {
         println!("ccrw {}", env!("CARGO_PKG_VERSION"));
         return;
     }
+
+    // Create .app bundle in /Applications on first run
+    app_bundle::ensure_app_bundle();
 
     let mut event_loop = EventLoopBuilder::<AppEvent>::with_user_event().build();
     event_loop.set_activation_policy(ActivationPolicy::Accessory);
