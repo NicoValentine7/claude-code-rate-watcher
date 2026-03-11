@@ -32,12 +32,38 @@ jobs:
             target/x86_64-apple-darwin/release/claude-code-rate-watcher \
             -output claude-code-rate-watcher
 
-      - name: Package
+      - name: Package tarball
         run: |
           tar czf claude-code-rate-watcher-macos-universal.tar.gz claude-code-rate-watcher
+
+      - name: Create pkg installer
+        run: |
+          mkdir -p pkg-root/payload
+          cp claude-code-rate-watcher pkg-root/payload/
+
+          mkdir -p pkg-root/scripts
+          cat > pkg-root/scripts/postinstall << 'SCRIPT'
+          #!/bin/bash
+          INSTALL_DIR="$HOME/Applications/claude-code-rate-watcher"
+          mkdir -p "$INSTALL_DIR"
+          cp /tmp/claude-code-rate-watcher-install/claude-code-rate-watcher "$INSTALL_DIR/"
+          chmod 755 "$INSTALL_DIR/claude-code-rate-watcher"
+          rm -rf /tmp/claude-code-rate-watcher-install
+          SCRIPT
+          chmod +x pkg-root/scripts/postinstall
+
+          pkgbuild \
+            --root pkg-root/payload \
+            --scripts pkg-root/scripts \
+            --identifier com.claude-code-rate-watcher \
+            --version ${GITHUB_REF_NAME#v} \
+            --install-location /tmp/claude-code-rate-watcher-install \
+            claude-code-rate-watcher.pkg
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: claude-code-rate-watcher-macos-universal.tar.gz
+          files: |
+            claude-code-rate-watcher-macos-universal.tar.gz
+            claude-code-rate-watcher.pkg
           generate_release_notes: true

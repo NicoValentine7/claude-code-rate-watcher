@@ -58,7 +58,8 @@ cargo run                # 開発実行
 4. GitHub Actions (`.github/workflows/release.yml`) が自動実行:
    - aarch64 + x86_64 のクロスビルド
    - `lipo` でユニバーサルバイナリ作成
-   - `claude-code-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
+   - `claude-code-rate-watcher-macos-universal.tar.gz`（auto-updater 用）として GitHub Releases に公開
+   - `claude-code-rate-watcher.pkg`（初回インストール用、postinstall で `~/Applications/` に配置）も公開
    - `softprops/action-gh-release@v2` でリリースノート自動生成
 
 ### リリースタイミング
