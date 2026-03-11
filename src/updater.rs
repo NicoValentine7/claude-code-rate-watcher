@@ -135,7 +135,25 @@ fn check_github_release() -> Result<Option<UpdateInfo>, String> {
     Ok(None)
 }
 
+/// Detect if running from a Homebrew Cellar install.
+pub fn is_homebrew_install() -> bool {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.canonicalize().ok())
+        .map(|p| {
+            let s = p.to_string_lossy();
+            s.contains("/Cellar/") || s.contains("/homebrew/")
+        })
+        .unwrap_or(false)
+}
+
 fn current_binary_path() -> Result<PathBuf, String> {
+    if is_homebrew_install() {
+        return Err(
+            "Auto-update disabled for Homebrew installs. Use `brew upgrade claude-code-rate-watcher`."
+                .to_string(),
+        );
+    }
     std::env::current_exe().map_err(|e| format!("cannot find current exe: {}", e))
 }
 

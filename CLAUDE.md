@@ -92,9 +92,21 @@ cargo run                # 開発実行
 - `Cargo.toml` の version と GitHub Release のタグ名を semver 比較
 - 新バージョン検出 → popover にバナー表示 → ユーザーがクリックで tarball ダウンロード → バイナリ置換 → 再起動
 
+### Homebrew Tap
+
+- リポジトリ: `NicoValentine7/homebrew-tap`
+- Formula: `Formula/claude-code-rate-watcher.rb`
+- インストール: `brew install NicoValentine7/tap/claude-code-rate-watcher`
+- **リリース時**: tarball の sha256 を計算して Formula を更新する必要あり
+  ```bash
+  shasum -a 256 claude-code-rate-watcher-macos-universal.tar.gz
+  ```
+- Homebrew 経由のインストールでは auto-update が無効化される（`brew upgrade` を使用）
+
 ### インストール先
 
-- ユーザー配置先: `/Applications/Claude Code Rate Watcher.app`（DMG からドラッグ&ドロップ）
+- DMG: `/Applications/Claude Code Rate Watcher.app`（ドラッグ&ドロップ）
+- Homebrew: `/opt/homebrew/bin/claude-code-rate-watcher`（Apple Silicon）/ `/usr/local/bin/claude-code-rate-watcher`（Intel）
 - LaunchAgent plist: `~/Library/LaunchAgents/com.claude-code-rate-watcher.plist`
 - ログイン時自動起動: popover の「Launch at Login」トグルで ON/OFF
 
