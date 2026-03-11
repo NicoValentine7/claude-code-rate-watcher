@@ -64,6 +64,9 @@ pub struct UsagePayload {
     pub api_7d_reset: Option<String>,
     pub is_live: bool,
     pub auth_missing: bool,
+    pub error_message: Option<String>,
+    pub error_detail: Option<String>,
+    pub retry_count: u32,
 }
 
 impl UsageSummary {
@@ -104,6 +107,9 @@ impl UsageSummary {
             api_7d_reset: api_data.seven_day_resets_at.clone(),
             is_live: api_data.is_live,
             auth_missing: api_data.auth_missing,
+            error_message: api_data.error_message.clone(),
+            error_detail: api_data.error_detail.clone(),
+            retry_count: api_data.retry_count,
         }
     }
 }
