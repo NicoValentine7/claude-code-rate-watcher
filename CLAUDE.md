@@ -58,8 +58,10 @@ cargo run                # 開発実行
 4. GitHub Actions (`.github/workflows/release.yml`) が自動実行:
    - aarch64 + x86_64 のクロスビルド
    - `lipo` でユニバーサルバイナリ作成
+   - `.app` バンドル作成（`Info.plist` + ユニバーサルバイナリ、`LSUIElement=true`）
+   - Ad-hoc コード署名（`codesign --force --deep -s -`）
    - `claude-code-rate-watcher-macos-universal.tar.gz`（auto-updater 用）として GitHub Releases に公開
-   - `claude-code-rate-watcher.pkg`（初回インストール用、postinstall で `~/Applications/` に配置）も公開
+   - `claude-code-rate-watcher.dmg`（初回インストール用、.app + /Applications シンボリックリンク）も公開
    - `softprops/action-gh-release@v2` でリリースノート自動生成
 
 ### リリースタイミング
@@ -91,7 +93,7 @@ cargo run                # 開発実行
 
 ### インストール先
 
-- ユーザー配置先: `~/Applications/claude-code-rate-watcher`
+- ユーザー配置先: `/Applications/Claude Code Rate Watcher.app`（DMG からドラッグ&ドロップ）
 - LaunchAgent plist: `~/Library/LaunchAgents/com.claude-code-rate-watcher.plist`
 - ログイン時自動起動: popover の「Launch at Login」トグルで ON/OFF
 

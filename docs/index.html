@@ -146,46 +146,6 @@
   }
 
 
-  .steps {
-    counter-reset: step;
-    list-style: none;
-    padding: 0;
-  }
-  .steps li {
-    counter-increment: step;
-    position: relative;
-    padding-left: 36px;
-    margin-bottom: 16px;
-    font-size: 0.95rem;
-  }
-  .steps li::before {
-    content: counter(step);
-    position: absolute;
-    left: 0;
-    width: 24px;
-    height: 24px;
-    background: var(--green);
-    color: #000;
-    border-radius: 50%;
-    font-size: 0.8rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .steps code {
-    display: block;
-    background: #111;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-top: 8px;
-    font-family: "SF Mono", Menlo, monospace;
-    font-size: 0.85rem;
-    color: var(--green);
-    overflow-x: auto;
-  }
-
   .hero-screenshot {
     margin-top: 40px;
     text-align: center;
@@ -227,7 +187,7 @@
   <h1>Claude Code Rate Watcher</h1>
   <p class="subtitle" data-i18n="subtitle"></p>
   <a class="download-btn"
-     href="https://github.com/NicoValentine7/claude-code-rate-watcher/releases/latest/download/claude-code-rate-watcher.pkg">
+     href="thanks.html">
     <svg viewBox="0 0 20 20" fill="currentColor">
       <path d="M10 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V4a1 1 0 011-1z"/>
       <path d="M3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
@@ -277,15 +237,6 @@
     </div>
   </section>
 
-  <section>
-    <h2 data-i18n="setup-title"></h2>
-    <ol class="steps">
-      <li data-i18n="setup-s1"></li>
-      <li><span data-i18n="setup-s2"></span><code>xattr -cr ~/Applications/claude-code-rate-watcher</code></li>
-      <li data-i18n="setup-s3"></li>
-    </ol>
-  </section>
-
 </div>
 
 <footer>
@@ -311,10 +262,6 @@ const i18n = {
     "f5-desc": "Checks GitHub Releases for new versions and updates automatically with one click.",
     "f6-title": "Launch at Login",
     "f6-desc": "Toggle auto-start at login from the popover. Uses macOS LaunchAgent.",
-    "setup-title": "Getting Started",
-    "setup-s1": "Download and open the .pkg installer.",
-    "setup-s2": "If macOS blocks the app, run this in Terminal:",
-    "setup-s3": "Launch the app — it appears in your menu bar.",
   },
   ja: {
     subtitle: "Claude Code の API レート使用量をメニューバーからリアルタイム監視する macOS アプリ",
@@ -333,10 +280,6 @@ const i18n = {
     "f5-desc": "GitHub Releases から最新バージョンを検出し、ワンクリックで自動更新",
     "f6-title": "ログイン時に起動",
     "f6-desc": "ポップオーバーからログイン時の自動起動を切り替え（macOS LaunchAgent）",
-    "setup-title": "インストール手順",
-    "setup-s1": ".pkg インストーラをダウンロードして開く",
-    "setup-s2": "macOS がブロックする場合、ターミナルで以下を実行：",
-    "setup-s3": "アプリを起動 — メニューバーに表示されます",
   }
 };
 

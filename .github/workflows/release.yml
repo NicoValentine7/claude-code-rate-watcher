@@ -32,41 +32,58 @@ jobs:
             target/x86_64-apple-darwin/release/claude-code-rate-watcher \
             -output claude-code-rate-watcher
 
+      - name: Create .app bundle
+        run: |
+          APP="Claude Code Rate Watcher.app"
+          mkdir -p "$APP/Contents/MacOS"
+          cp claude-code-rate-watcher "$APP/Contents/MacOS/"
+          cat > "$APP/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>Claude Code Rate Watcher</string>
+            <key>CFBundleDisplayName</key>
+            <string>Claude Code Rate Watcher</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.claude-code-rate-watcher</string>
+            <key>CFBundleVersion</key>
+            <string>${GITHUB_REF_NAME#v}</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${GITHUB_REF_NAME#v}</string>
+            <key>CFBundleExecutable</key>
+            <string>claude-code-rate-watcher</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSUIElement</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
       - name: Ad-hoc code sign
-        run: codesign --force --deep -s - claude-code-rate-watcher
+        run: codesign --force --deep -s - "Claude Code Rate Watcher.app"
 
       - name: Package tarball
         run: |
           tar czf claude-code-rate-watcher-macos-universal.tar.gz claude-code-rate-watcher
 
-      - name: Create pkg installer
+      - name: Create DMG
         run: |
-          mkdir -p pkg-root/payload
-          cp claude-code-rate-watcher pkg-root/payload/
-
-          mkdir -p pkg-root/scripts
-          cat > pkg-root/scripts/postinstall << 'SCRIPT'
-          #!/bin/bash
-          INSTALL_DIR="$HOME/Applications/claude-code-rate-watcher"
-          mkdir -p "$INSTALL_DIR"
-          cp /tmp/claude-code-rate-watcher-install/claude-code-rate-watcher "$INSTALL_DIR/"
-          chmod 755 "$INSTALL_DIR/claude-code-rate-watcher"
-          rm -rf /tmp/claude-code-rate-watcher-install
-          SCRIPT
-          chmod +x pkg-root/scripts/postinstall
-
-          pkgbuild \
-            --root pkg-root/payload \
-            --scripts pkg-root/scripts \
-            --identifier com.claude-code-rate-watcher \
-            --version ${GITHUB_REF_NAME#v} \
-            --install-location /tmp/claude-code-rate-watcher-install \
-            claude-code-rate-watcher.pkg
+          mkdir dmg-staging
+          cp -R "Claude Code Rate Watcher.app" dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+          hdiutil create \
+            -volname "Claude Code Rate Watcher" \
+            -srcfolder dmg-staging \
+            -ov -format UDZO \
+            claude-code-rate-watcher.dmg
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             claude-code-rate-watcher-macos-universal.tar.gz
-            claude-code-rate-watcher.pkg
+            claude-code-rate-watcher.dmg
           generate_release_notes: true

@@ -10,8 +10,8 @@ fn plist_path() -> PathBuf {
 }
 
 fn binary_path() -> String {
-    let home = dirs::home_dir().expect("No home directory");
-    home.join("Applications/claude-code-rate-watcher")
+    std::env::current_exe()
+        .expect("Cannot determine current executable path")
         .to_string_lossy()
         .into_owned()
 }
