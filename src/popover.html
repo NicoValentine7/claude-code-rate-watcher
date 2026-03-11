@@ -527,6 +527,7 @@
     <div class="footer">
       <span class="updated" id="updated-text">Updated just now</span>
       <div class="footer-actions">
+        <button class="footer-btn" onclick="window.ipc.postMessage('open_dashboard')">History</button>
         <button class="footer-btn" onclick="window.ipc.postMessage('open_usage')">Usage</button>
         <button class="footer-btn" id="btn-quit" onclick="window.ipc.postMessage('quit')">Quit</button>
       </div>
