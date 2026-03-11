@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 use tao::dpi::{LogicalSize, PhysicalPosition};
 use tao::event::{Event, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use tao::platform::macos::{ActivationPolicy, EventLoopExtMacOS};
 use tao::window::WindowBuilder;
 use tray_icon::TrayIconEvent;
 use wry::WebViewBuilder;
@@ -36,7 +37,8 @@ fn main() {
         return;
     }
 
-    let event_loop = EventLoopBuilder::<AppEvent>::with_user_event().build();
+    let mut event_loop = EventLoopBuilder::<AppEvent>::with_user_event().build();
+    event_loop.set_activation_policy(ActivationPolicy::Accessory);
     let proxy = event_loop.create_proxy();
 
     // --- Popover window (borderless, hidden initially) ---
