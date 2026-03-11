@@ -57,6 +57,13 @@ pub struct UsagePayload {
     pub weekly_total_tokens: u64,
     pub weekly_message_count: usize,
     pub weekly_reset_text: Option<String>,
+    // API live data (overrides local estimates when available)
+    pub api_5h_percent: Option<u32>,
+    pub api_7d_percent: Option<u32>,
+    pub api_5h_reset: Option<String>,
+    pub api_7d_reset: Option<String>,
+    pub is_live: bool,
+    pub auth_missing: bool,
 }
 
 impl UsageSummary {
@@ -74,7 +81,10 @@ impl UsageSummary {
             + self.weekly_cache_read_tokens
     }
 
-    pub fn to_payload(&self) -> UsagePayload {
+    pub fn to_payload(
+        &self,
+        api_data: &crate::api_client::ApiRateLimitData,
+    ) -> UsagePayload {
         UsagePayload {
             usage_percent: self.usage_percent,
             total_input_tokens: self.total_input_tokens,
@@ -88,6 +98,12 @@ impl UsageSummary {
             weekly_total_tokens: self.weekly_total_tokens(),
             weekly_message_count: self.weekly_message_count,
             weekly_reset_text: self.weekly_reset_time.map(format_remaining_time_long),
+            api_5h_percent: api_data.five_hour_percent,
+            api_7d_percent: api_data.seven_day_percent,
+            api_5h_reset: api_data.five_hour_resets_at.clone(),
+            api_7d_reset: api_data.seven_day_resets_at.clone(),
+            is_live: api_data.is_live,
+            auth_missing: api_data.auth_missing,
         }
     }
 }

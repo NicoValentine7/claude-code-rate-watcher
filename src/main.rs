@@ -1,8 +1,12 @@
+mod api_client;
+mod auth;
+mod autolaunch;
 mod file_watcher;
 mod icon;
 mod notification;
 mod session_parser;
 mod tray;
+mod updater;
 mod usage_tracker;
 
 use std::sync::mpsc;
@@ -18,6 +22,7 @@ use wry::WebViewBuilder;
 enum AppEvent {
     FileChanged,
     TimerTick,
+    UpdateAvailable(updater::UpdateInfo),
 }
 
 const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
@@ -40,18 +45,43 @@ fn main() {
         .build(&event_loop)
         .expect("Failed to create window");
 
+    // --- Updater (check for new versions) ---
+    let app_updater = std::sync::Arc::new(updater::Updater::new());
+
     // --- WebView inside the popover ---
     let html = include_str!("popover.html");
 
     let proxy_ipc = proxy.clone();
+    let updater_ipc = app_updater.clone();
     let webview = WebViewBuilder::new()
         .with_transparent(true)
         .with_html(html)
         .with_ipc_handler(move |msg| {
-            if msg.body() == "quit" {
-                // Send a quit signal — we can't exit from here directly
-                // because the event loop owns the process.
-                std::process::exit(0);
+            match msg.body().as_str() {
+                "quit" => std::process::exit(0),
+                "open_usage" => {
+                    let _ = std::process::Command::new("open")
+                        .arg("https://claude.ai/settings/usage")
+                        .spawn();
+                }
+                "auth_login" => {
+                    let _ = std::process::Command::new("osascript")
+                        .args(["-e", "tell application \"Terminal\" to do script \"claude login\""])
+                        .spawn();
+                }
+                "toggle_launch_at_login" => {
+                    let _ = autolaunch::toggle();
+                }
+                "apply_update" => {
+                    if let Some(info) = updater_ipc.get_available() {
+                        std::thread::spawn(move || {
+                            if let Err(e) = updater::Updater::apply_update(&info) {
+                                eprintln!("Update failed: {}", e);
+                            }
+                        });
+                    }
+                }
+                _ => {}
             }
             let _ = &proxy_ipc; // keep proxy alive
         })
@@ -64,11 +94,19 @@ fn main() {
     // --- Notification state ---
     let mut notifier = notification::NotificationState::new();
 
+    // --- API poller (fetches real rate limit data) ---
+    let api_poller = api_client::ApiPoller::new();
+    api_poller.poll(); // Initial fetch
+
     // --- Initial data load ---
     let mut all_records = session_parser::load_all_sessions();
     let summary = usage_tracker::calculate_usage(&all_records);
-    tray_app.update_percent(summary.usage_percent);
-    push_to_webview(&webview, &summary);
+    let api_data = api_poller.get_data();
+    let effective_pct = api_data.five_hour_percent.unwrap_or(0);
+    tray_app.update_percent(effective_pct);
+    push_to_webview(&webview, &summary, &api_data);
+    let autolaunch_enabled = autolaunch::is_enabled();
+    let _ = webview.evaluate_script(&format!("setAutoLaunch({})", autolaunch_enabled));
     let mut last_reload = Instant::now();
 
     // --- File watcher ---
@@ -87,6 +125,24 @@ fn main() {
     std::thread::spawn(move || loop {
         std::thread::sleep(Duration::from_secs(30));
         let _ = proxy_timer.send_event(AppEvent::TimerTick);
+    });
+
+    // --- Update checker thread ---
+    let proxy_update = proxy.clone();
+    let updater_clone = app_updater.clone();
+    std::thread::spawn(move || {
+        // Check on startup (after a short delay)
+        std::thread::sleep(Duration::from_secs(5));
+        if let Some(info) = updater_clone.check() {
+            let _ = proxy_update.send_event(AppEvent::UpdateAvailable(info));
+        }
+        // Then check periodically
+        loop {
+            std::thread::sleep(Duration::from_secs(6 * 3600));
+            if let Some(info) = updater_clone.check() {
+                let _ = proxy_update.send_event(AppEvent::UpdateAvailable(info));
+            }
+        }
     });
 
     // --- Event receivers ---
@@ -136,15 +192,29 @@ fn main() {
 
                 all_records = session_parser::load_all_sessions();
                 let summary = usage_tracker::calculate_usage(&all_records);
-                tray_app.update_percent(summary.usage_percent);
-                push_to_webview(&webview, &summary);
-                notifier.check_and_notify(summary.usage_percent);
+                api_poller.poll();
+                let api_data = api_poller.get_data();
+                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
+                tray_app.update_percent(effective_pct);
+                push_to_webview(&webview, &summary, &api_data);
+                notifier.check_and_notify(effective_pct);
             }
 
             Event::UserEvent(AppEvent::TimerTick) => {
                 let summary = usage_tracker::calculate_usage(&all_records);
-                tray_app.update_percent(summary.usage_percent);
-                push_to_webview(&webview, &summary);
+                api_poller.poll();
+                let api_data = api_poller.get_data();
+                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
+                tray_app.update_percent(effective_pct);
+                push_to_webview(&webview, &summary, &api_data);
+            }
+
+            Event::UserEvent(AppEvent::UpdateAvailable(ref info)) => {
+                let js = format!(
+                    "showUpdateBanner('{}')",
+                    info.version.replace('\'', "\\'")
+                );
+                let _ = webview.evaluate_script(&js);
             }
 
             _ => {}
@@ -152,8 +222,12 @@ fn main() {
     });
 }
 
-fn push_to_webview(webview: &wry::WebView, summary: &usage_tracker::UsageSummary) {
-    let payload = summary.to_payload();
+fn push_to_webview(
+    webview: &wry::WebView,
+    summary: &usage_tracker::UsageSummary,
+    api_data: &api_client::ApiRateLimitData,
+) {
+    let payload = summary.to_payload(api_data);
     if let Ok(json) = serde_json::to_string(&payload) {
         let _ = webview.evaluate_script(&format!("updateData({})", json));
     }

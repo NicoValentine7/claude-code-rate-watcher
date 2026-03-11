@@ -1,0 +1,88 @@
+# CLAUDE.md
+
+## Project Overview
+
+Claude Code Rate Watcher - macOS メニューバーアプリ。Claude Code の API レート制限使用量をリアルタイム監視する。
+
+## Tech Stack
+
+- **Language**: Rust (edition 2024)
+- **GUI**: tao (windowing) + wry (WebView) + tray-icon (メニューバー)
+- **File monitoring**: notify crate
+- **Notifications**: notify-rust (macOS native)
+- **Platform**: macOS only (Apple Silicon + Intel)
+
+## Architecture
+
+```
+main.rs              - イベントループ、ウィンドウ管理、IPC
+├── api_client.rs    - Anthropic API ポーリング（OAuth + Haiku probe）
+├── auth.rs          - macOS Keychain からの認証情報取得
+├── autolaunch.rs    - ログイン時自動起動（LaunchAgent plist 管理）
+├── file_watcher.rs  - ~/.claude/projects/ の JSONL ファイル変更検知
+├── session_parser.rs - JSONL セッションファイルのパース、トークン使用量抽出
+├── usage_tracker.rs  - 使用量計算（5h / 168h ウィンドウ）、閾値判定
+├── updater.rs       - GitHub Releases ベースの自動アップデート
+├── tray.rs          - メニューバートレイアイコン管理
+├── notification.rs  - システム通知（レートリミット付き）
+├── icon.rs          - 使用率に応じた動的カラーアイコン生成
+└── popover.html     - WebView UI（使用量表示、トークン詳細）
+```
+
+## Key Constants
+
+- 5h window limit: 25,000,000 tokens (weighted) — `usage_tracker.rs`
+- Weekly (168h) limit: 225,000,000 tokens (weighted) — `usage_tracker.rs`
+- Output token weight: 5x input
+- Cache read weight: 1/10 input
+- Notification thresholds: 75% (warning), 90% (critical)
+- UI update interval: 30 seconds
+- File change debounce: 1 second
+
+## Build & Run
+
+```bash
+cargo build --release    # リリースビルド
+cargo run                # 開発実行
+```
+
+## Release Process
+
+1. `Cargo.toml` の `version` を更新
+2. 変更をコミット
+3. タグを作成してプッシュ:
+   ```bash
+   git tag v0.x.0
+   git push origin main --tags
+   ```
+4. GitHub Actions (`.github/workflows/release.yml`) が自動実行:
+   - aarch64 + x86_64 のクロスビルド
+   - `lipo` でユニバーサルバイナリ作成
+   - `claude-code-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
+
+### GitHub Pages
+
+- `docs/index.html` — リリースページ（EN/JA 対応）
+- GitHub Pages のソースは `/docs` ディレクトリ
+- ダウンロードリンクは GitHub Releases の latest を指す
+
+### Auto-Updater
+
+- `updater.rs` が GitHub Releases API でバージョンチェック
+- `Cargo.toml` の version と GitHub Release のタグ名を semver 比較
+- バージョンを上げずにリリースすると自動アップデートが動作しないので注意
+
+### インストール先
+
+- ユーザー配置先: `~/Applications/claude-code-rate-watcher`
+- LaunchAgent plist: `~/Library/LaunchAgents/com.claude-code-rate-watcher.plist`
+
+## Data Source
+
+`~/.claude/projects/**/*.jsonl` — Claude Code のセッションジャーナルファイル
+
+## UI Colors (Apple HIG)
+
+- Green (#34C759): 0-69%
+- Orange (#FF9F0A): 70-89%
+- Red (#FF3B30): 90-100%

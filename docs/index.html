@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,6 +21,36 @@
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
+  }
+
+  .lang-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+    display: flex;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .lang-toggle button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .lang-toggle button.active {
+    background: var(--green);
+    color: #000;
+  }
+  .lang-toggle button:hover:not(.active) {
+    background: var(--border);
+    color: var(--text);
   }
 
   .hero {
@@ -173,6 +203,11 @@
 </head>
 <body>
 
+<div class="lang-toggle">
+  <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+  <button id="btn-ja" onclick="setLang('ja')">JA</button>
+</div>
+
 <div class="hero">
   <div class="hero-icon">
     <svg viewBox="0 0 56 56" fill="none">
@@ -182,74 +217,149 @@
     </svg>
   </div>
   <h1>Claude Code Rate Watcher</h1>
-  <p class="subtitle">Claude Code の API レート使用量をメニューバーからリアルタイム監視する macOS アプリ</p>
+  <p class="subtitle" data-i18n="subtitle"></p>
   <a class="download-btn"
      href="https://github.com/NicoValentine7/claude-code-rate-watcher/releases/latest">
     <svg viewBox="0 0 20 20" fill="currentColor">
       <path d="M10 3a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V4a1 1 0 011-1z"/>
       <path d="M3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
     </svg>
-    Download for macOS
+    <span data-i18n="download-btn"></span>
   </a>
-  <p class="download-meta">macOS Universal (Apple Silicon + Intel)</p>
+  <p class="download-meta" data-i18n="download-meta"></p>
 </div>
 
 <div class="container">
   <section>
-    <h2>Features</h2>
+    <h2 data-i18n="features-title"></h2>
     <div class="features">
       <div class="feature">
         <div class="feature-icon" aria-hidden="true">&#x1F4CA;</div>
-        <h3>5 時間ウィンドウ追跡</h3>
-        <p>5 時間のスライディングウィンドウでトークン使用量をリアルタイム表示</p>
+        <h3 data-i18n="f1-title"></h3>
+        <p data-i18n="f1-desc"></p>
       </div>
       <div class="feature">
         <div class="feature-icon" aria-hidden="true">&#x1F4C5;</div>
-        <h3>週次制限モニタリング</h3>
-        <p>168 時間の週次トークン使用量も同時に追跡</p>
+        <h3 data-i18n="f2-title"></h3>
+        <p data-i18n="f2-desc"></p>
       </div>
       <div class="feature">
         <div class="feature-icon" aria-hidden="true">&#x1F514;</div>
-        <h3>閾値アラート</h3>
-        <p>使用量が 75% / 90% を超えると macOS 通知でお知らせ</p>
+        <h3 data-i18n="f3-title"></h3>
+        <p data-i18n="f3-desc"></p>
       </div>
       <div class="feature">
         <div class="feature-icon" aria-hidden="true">&#x23F1;&#xFE0F;</div>
-        <h3>リセットカウントダウン</h3>
-        <p>レート制限のリセットまでの残り時間をカウントダウン表示</p>
+        <h3 data-i18n="f4-title"></h3>
+        <p data-i18n="f4-desc"></p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true">&#x1F504;</div>
+        <h3 data-i18n="f5-title"></h3>
+        <p data-i18n="f5-desc"></p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true">&#x1F680;</div>
+        <h3 data-i18n="f6-title"></h3>
+        <p data-i18n="f6-desc"></p>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>Screenshot</h2>
-    <div class="screenshot-placeholder">
-      スクリーンショットをここに追加
-    </div>
+    <h2 data-i18n="screenshot-title"></h2>
+    <div class="screenshot-placeholder" data-i18n="screenshot-placeholder"></div>
   </section>
 
   <section>
-    <h2>Install</h2>
+    <h2 data-i18n="install-title"></h2>
     <ol class="install-steps">
-      <li>上のボタンから <code>claude-code-rate-watcher-macos-universal.tar.gz</code> をダウンロード</li>
-      <li>ダブルクリックで展開し、バイナリを <code>/usr/local/bin/</code> 等に配置</li>
-      <li>ターミナルから <code>claude-code-rate-watcher</code> を実行、またはログイン項目に追加</li>
+      <li data-i18n="install-1"></li>
+      <li data-i18n="install-2"></li>
+      <li data-i18n="install-3"></li>
     </ol>
   </section>
 
   <section>
-    <h2>How it Works</h2>
-    <p style="color:var(--text-secondary);">
-      <code>~/.claude/projects/</code> 配下の JSONL セッションファイルを監視し、
-      assistant レスポンスのトークン使用量を集計します。
-      出力トークンはコスト換算で入力の 5 倍として加重計算されます。
-    </p>
+    <h2 data-i18n="how-title"></h2>
+    <p style="color:var(--text-secondary);" data-i18n="how-desc"></p>
   </section>
 </div>
 
 <footer>
   <p><a href="https://github.com/NicoValentine7/claude-code-rate-watcher">GitHub</a></p>
 </footer>
+
+<script>
+const i18n = {
+  en: {
+    subtitle: "A macOS menu bar app to monitor Claude Code API rate limit usage in real time.",
+    "download-btn": "Download for macOS",
+    "download-meta": "macOS Universal (Apple Silicon + Intel)",
+    "features-title": "Features",
+    "f1-title": "5-Hour Window Tracking",
+    "f1-desc": "Real-time token usage display using a sliding 5-hour window.",
+    "f2-title": "Weekly Limit Monitoring",
+    "f2-desc": "Tracks 168-hour weekly token usage simultaneously.",
+    "f3-title": "Threshold Alerts",
+    "f3-desc": "Sends macOS notifications when usage exceeds 75% or 90%.",
+    "f4-title": "Reset Countdown",
+    "f4-desc": "Displays a countdown to the next rate limit reset.",
+    "f5-title": "Auto-Update",
+    "f5-desc": "Checks GitHub Releases for new versions and updates automatically with one click.",
+    "f6-title": "Launch at Login",
+    "f6-desc": "Toggle auto-start at login from the popover. Uses macOS LaunchAgent.",
+    "screenshot-title": "Screenshot",
+    "screenshot-placeholder": "Screenshot coming soon",
+    "install-title": "Install",
+    "install-1": 'Download <code>claude-code-rate-watcher-macos-universal.tar.gz</code> from the button above.',
+    "install-2": 'Extract the archive and place the binary in <code>~/Applications/</code>.',
+    "install-3": 'Run <code>~/Applications/claude-code-rate-watcher</code> and enable "Launch at Login" from the popover.',
+    "how-title": "How it Works",
+    "how-desc": 'Monitors JSONL session files under <code>~/.claude/projects/</code> and aggregates token usage from assistant responses. Output tokens are weighted at 5× input for cost-equivalent calculation.',
+  },
+  ja: {
+    subtitle: "Claude Code の API レート使用量をメニューバーからリアルタイム監視する macOS アプリ",
+    "download-btn": "Download for macOS",
+    "download-meta": "macOS Universal (Apple Silicon + Intel)",
+    "features-title": "Features",
+    "f1-title": "5 時間ウィンドウ追跡",
+    "f1-desc": "5 時間のスライディングウィンドウでトークン使用量をリアルタイム表示",
+    "f2-title": "週次制限モニタリング",
+    "f2-desc": "168 時間の週次トークン使用量も同時に追跡",
+    "f3-title": "閾値アラート",
+    "f3-desc": "使用量が 75% / 90% を超えると macOS 通知でお知らせ",
+    "f4-title": "リセットカウントダウン",
+    "f4-desc": "レート制限のリセットまでの残り時間をカウントダウン表示",
+    "f5-title": "自動アップデート",
+    "f5-desc": "GitHub Releases から最新バージョンを検出し、ワンクリックで自動更新",
+    "f6-title": "ログイン時に起動",
+    "f6-desc": "ポップオーバーからログイン時の自動起動を切り替え（macOS LaunchAgent）",
+    "screenshot-title": "Screenshot",
+    "screenshot-placeholder": "スクリーンショットをここに追加",
+    "install-title": "Install",
+    "install-1": '上のボタンから <code>claude-code-rate-watcher-macos-universal.tar.gz</code> をダウンロード',
+    "install-2": 'ダブルクリックで展開し、バイナリを <code>~/Applications/</code> に配置',
+    "install-3": '<code>~/Applications/claude-code-rate-watcher</code> を実行し、ポップオーバーから「Launch at Login」を有効化',
+    "how-title": "How it Works",
+    "how-desc": '<code>~/.claude/projects/</code> 配下の JSONL セッションファイルを監視し、assistant レスポンスのトークン使用量を集計します。出力トークンはコスト換算で入力の 5 倍として加重計算されます。',
+  }
+};
+
+function setLang(lang) {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (i18n[lang][key] !== undefined) el.innerHTML = i18n[lang][key];
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-ja').classList.toggle('active', lang === 'ja');
+  localStorage.setItem('lang', lang);
+}
+
+const saved = localStorage.getItem('lang');
+setLang(saved === 'ja' ? 'ja' : 'en');
+</script>
 
 </body>
 </html>
