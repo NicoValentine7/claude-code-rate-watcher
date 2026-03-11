@@ -48,7 +48,7 @@ cargo run                # 開発実行
 
 ## Release Process
 
-1. `Cargo.toml` の `version` を更新
+1. `Cargo.toml` の `version` を更新（semver 準拠: `MAJOR.MINOR.PATCH`）
 2. 変更をコミット
 3. タグを作成してプッシュ:
    ```bash
@@ -59,23 +59,34 @@ cargo run                # 開発実行
    - aarch64 + x86_64 のクロスビルド
    - `lipo` でユニバーサルバイナリ作成
    - `claude-code-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
+   - `softprops/action-gh-release@v2` でリリースノート自動生成
+
+### 重要な注意点
+
+- **バージョンとタグは必ず一致させる**: `Cargo.toml` の version が `0.3.0` ならタグは `v0.3.0`
+- **バージョンを上げずにリリースすると自動アップデートが動作しない**
+- タグが `v*` パターンにマッチした push でのみ Release ワークフローが起動する
 
 ### GitHub Pages
 
-- `docs/index.html` — リリースページ（EN/JA 対応）
-- GitHub Pages のソースは `/docs` ディレクトリ
-- ダウンロードリンクは GitHub Releases の latest を指す
+- **URL**: https://nicovalentine7.github.io/claude-code-rate-watcher/
+- **ソース**: `docs/` ディレクトリ（GitHub Pages の設定で `/docs` を指定）
+- `docs/index.html` — リリースページ（EN/JA 言語切替対応）
+- ダウンロードリンクは `https://github.com/NicoValentine7/claude-code-rate-watcher/releases/latest` を指す → 常に最新リリースが配布される
+- `docs/` 内のファイルを変更して main に push すると、自動的に Pages がデプロイされる
 
 ### Auto-Updater
 
-- `updater.rs` が GitHub Releases API でバージョンチェック
+- `updater.rs` が GitHub Releases API (`https://api.github.com/repos/{owner}/{repo}/releases/latest`) でバージョンチェック
+- チェックタイミング: 起動 5 秒後 + 6 時間ごと
 - `Cargo.toml` の version と GitHub Release のタグ名を semver 比較
-- バージョンを上げずにリリースすると自動アップデートが動作しないので注意
+- 新バージョン検出 → popover にバナー表示 → ユーザーがクリックで tarball ダウンロード → バイナリ置換 → 再起動
 
 ### インストール先
 
 - ユーザー配置先: `~/Applications/claude-code-rate-watcher`
 - LaunchAgent plist: `~/Library/LaunchAgents/com.claude-code-rate-watcher.plist`
+- ログイン時自動起動: popover の「Launch at Login」トグルで ON/OFF
 
 ## Data Source
 
