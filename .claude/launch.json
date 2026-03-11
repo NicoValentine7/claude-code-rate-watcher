@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8787", "-d", "docs"],
       "port": 8787
+    },
+    {
+      "name": "popover",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8788", "-d", "src"],
+      "port": 8788
     }
   ]
 }
