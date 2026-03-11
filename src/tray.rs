@@ -22,9 +22,16 @@ impl TrayApp {
         Self { tray }
     }
 
-    pub fn update_percent(&self, percent: u32) {
-        let new_icon = generate_status_icon(percent);
+    pub fn update_percent(&self, claude_pct: u32, codex_pct: u32) {
+        let max_pct = claude_pct.max(codex_pct);
+        let new_icon = generate_status_icon(max_pct);
         let _ = self.tray.set_icon(Some(new_icon));
-        self.tray.set_title(Some(&format!("{}%", percent)));
+
+        if codex_pct > 0 {
+            self.tray
+                .set_title(Some(&format!("C:{}% X:{}%", claude_pct, codex_pct)));
+        } else {
+            self.tray.set_title(Some(&format!("{}%", claude_pct)));
+        }
     }
 }

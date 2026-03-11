@@ -6,10 +6,13 @@ pub enum WatcherMessage {
 }
 
 pub fn start_watcher(sender: Sender<WatcherMessage>) -> notify::Result<impl Watcher> {
-    let projects_dir = match dirs::home_dir() {
-        Some(home) => home.join(".claude").join("projects"),
+    let home = match dirs::home_dir() {
+        Some(h) => h,
         None => return Err(notify::Error::generic("Could not find home directory")),
     };
+
+    let claude_dir = home.join(".claude").join("projects");
+    let codex_dir = home.join(".codex").join("archived_sessions");
 
     let mut watcher =
         notify::recommended_watcher(move |res: Result<Event, notify::Error>| {
@@ -27,6 +30,12 @@ pub fn start_watcher(sender: Sender<WatcherMessage>) -> notify::Result<impl Watc
             }
         })?;
 
-    watcher.watch(&projects_dir, RecursiveMode::Recursive)?;
+    watcher.watch(&claude_dir, RecursiveMode::Recursive)?;
+
+    // Watch Codex directory if it exists
+    if codex_dir.exists() {
+        let _ = watcher.watch(&codex_dir, RecursiveMode::NonRecursive);
+    }
+
     Ok(watcher)
 }

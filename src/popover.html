@@ -19,7 +19,7 @@
 
   /* Header */
   .header {
-    padding: 16px 16px 12px;
+    padding: 16px 16px 0;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -46,6 +46,57 @@
   .badge.connecting {
     background: rgba(255, 159, 10, 0.18);
     color: #FF9F0A;
+  }
+
+  .badge.local {
+    background: rgba(172, 142, 104, 0.18);
+    color: #AC8E68;
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    margin: 10px 16px 0;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 2px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    font-size: 12.5px;
+    font-weight: 500;
+    font-family: inherit;
+    color: rgba(255, 255, 255, 0.45);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 0;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tab-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .tab-btn:hover:not(.active) {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .tab-btn.disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .tab-content {
+    display: none;
+  }
+
+  .tab-content.active {
+    display: block;
   }
 
   /* Auth Required */
@@ -174,6 +225,10 @@
     padding: 0 16px 16px;
   }
 
+  .section:first-child {
+    padding-top: 4px;
+  }
+
   .section + .section {
     border-top: 0.5px solid rgba(255, 255, 255, 0.06);
     padding-top: 14px;
@@ -297,6 +352,24 @@
   .detail-row.total .detail-value {
     color: #fff;
     font-weight: 600;
+  }
+
+  /* No data state */
+  .no-data {
+    padding: 32px 24px;
+    text-align: center;
+  }
+
+  .no-data-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+  }
+
+  .no-data-text {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.5;
   }
 
   /* Footer */
@@ -426,9 +499,15 @@
 <body>
   <div class="popover">
     <div class="header">
-      <span class="header-title">Claude Code</span>
+      <span class="header-title" id="header-title">Claude Code</span>
       <span class="badge" id="plan-badge">Max</span>
       <span class="badge live" id="source-badge">Live</span>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar" id="tab-bar">
+      <button class="tab-btn active" id="tab-claude" onclick="switchTab('claude')">Claude</button>
+      <button class="tab-btn disabled" id="tab-codex" onclick="switchTab('codex')">Codex</button>
     </div>
 
     <!-- Update banner -->
@@ -437,83 +516,152 @@
       <button class="update-banner-action">Update</button>
     </div>
 
-    <!-- Auth required state -->
-    <div class="auth-required" id="auth-section">
-      <div class="auth-icon">&#x1F511;</div>
-      <div class="auth-title">Login Required</div>
-      <div class="auth-desc">
-        Claude Code login is needed to fetch<br>
-        your rate limit data.
+    <!-- ===== CLAUDE TAB ===== -->
+    <div class="tab-content active" id="content-claude">
+      <!-- Auth required state -->
+      <div class="auth-required" id="auth-section">
+        <div class="auth-icon">&#x1F511;</div>
+        <div class="auth-title">Login Required</div>
+        <div class="auth-desc">
+          Claude Code login is needed to fetch<br>
+          your rate limit data.
+        </div>
+        <button class="auth-btn" onclick="window.ipc.postMessage('auth_login')">
+          Login with Claude Code
+        </button>
       </div>
-      <button class="auth-btn" onclick="window.ipc.postMessage('auth_login')">
-        Login with Claude Code
-      </button>
+
+      <!-- Connecting state -->
+      <div class="connecting-state" id="connecting-section">
+        <div class="connecting-spinner">&#x1F4E1;</div>
+        <div class="connecting-text">Connecting to API...</div>
+        <div class="error-message" id="error-message"></div>
+        <button class="error-detail-toggle" id="error-toggle" onclick="toggleErrorDetails()" style="display:none">Show details</button>
+        <div class="error-details" id="error-details"></div>
+      </div>
+
+      <!-- Normal usage content -->
+      <div class="usage-content" id="usage-section">
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x23F1;</span>
+            <span class="section-label">5-Hour Window</span>
+            <span class="section-value safe" id="pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="reset-text" id="reset-text">No active session</div>
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x1F4C5;</span>
+            <span class="section-label">Weekly Limit</span>
+            <span class="section-value safe" id="weekly-pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="weekly-progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="sub-stats">
+            <span class="reset-text" id="weekly-reset-text">No activity</span>
+            <span class="reset-text" id="weekly-tokens-text"></span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-header collapsible" onclick="toggleTokenDetails()">
+            <span class="section-icon">&#x1F4CA;</span>
+            <span class="section-label">Token Usage (5h)</span>
+            <span class="chevron" id="token-chevron">&#x25B6;</span>
+          </div>
+          <div class="detail-rows" id="token-details">
+            <div class="detail-row">
+              <span class="detail-label">Input</span>
+              <span class="detail-value" id="val-input">0</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Output</span>
+              <span class="detail-value" id="val-output">0</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Cache Write</span>
+              <span class="detail-value" id="val-cache-write">0</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Cache Read</span>
+              <span class="detail-value" id="val-cache-read">0</span>
+            </div>
+            <div class="detail-row total">
+              <span class="detail-label">Total</span>
+              <span class="detail-value" id="val-total">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Connecting state -->
-    <div class="connecting-state" id="connecting-section">
-      <div class="connecting-spinner">&#x1F4E1;</div>
-      <div class="connecting-text">Connecting to API...</div>
-      <div class="error-message" id="error-message"></div>
-      <button class="error-detail-toggle" id="error-toggle" onclick="toggleErrorDetails()" style="display:none">Show details</button>
-      <div class="error-details" id="error-details"></div>
-    </div>
-
-    <!-- Normal usage content -->
-    <div class="usage-content" id="usage-section">
-      <div class="section">
-        <div class="section-header">
-          <span class="section-icon">&#x23F1;</span>
-          <span class="section-label">5-Hour Window</span>
-          <span class="section-value safe" id="pct-value">0%</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill safe" id="progress-bar" style="width: 0%"></div>
-        </div>
-        <div class="reset-text" id="reset-text">No active session</div>
+    <!-- ===== CODEX TAB ===== -->
+    <div class="tab-content" id="content-codex">
+      <div class="no-data" id="codex-no-data">
+        <div class="no-data-icon">&#x1F4E6;</div>
+        <div class="no-data-text">No Codex session data found.<br>Use Codex CLI to see usage here.</div>
       </div>
 
-      <div class="section">
-        <div class="section-header">
-          <span class="section-icon">&#x1F4C5;</span>
-          <span class="section-label">Weekly Limit</span>
-          <span class="section-value safe" id="weekly-pct-value">0%</span>
+      <div class="usage-content" id="codex-usage-section" style="display:none">
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x23F1;</span>
+            <span class="section-label">5-Hour Window</span>
+            <span class="section-value safe" id="codex-pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="codex-progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="reset-text" id="codex-reset-text">No active session</div>
         </div>
-        <div class="progress-track">
-          <div class="progress-fill safe" id="weekly-progress-bar" style="width: 0%"></div>
-        </div>
-        <div class="sub-stats">
-          <span class="reset-text" id="weekly-reset-text">No activity</span>
-          <span class="reset-text" id="weekly-tokens-text"></span>
-        </div>
-      </div>
 
-      <div class="section">
-        <div class="section-header collapsible" onclick="toggleTokenDetails()">
-          <span class="section-icon">&#x1F4CA;</span>
-          <span class="section-label">Token Usage (5h)</span>
-          <span class="chevron" id="token-chevron">&#x25B6;</span>
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x1F4C5;</span>
+            <span class="section-label">Weekly Limit</span>
+            <span class="section-value safe" id="codex-weekly-pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="codex-weekly-progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="sub-stats">
+            <span class="reset-text" id="codex-weekly-reset-text">No activity</span>
+          </div>
         </div>
-        <div class="detail-rows" id="token-details">
-          <div class="detail-row">
-            <span class="detail-label">Input</span>
-            <span class="detail-value" id="val-input">0</span>
+
+        <div class="section">
+          <div class="section-header collapsible" onclick="toggleCodexTokenDetails()">
+            <span class="section-icon">&#x1F4CA;</span>
+            <span class="section-label">Token Usage</span>
+            <span class="chevron" id="codex-token-chevron">&#x25B6;</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Output</span>
-            <span class="detail-value" id="val-output">0</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Cache Write</span>
-            <span class="detail-value" id="val-cache-write">0</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Cache Read</span>
-            <span class="detail-value" id="val-cache-read">0</span>
-          </div>
-          <div class="detail-row total">
-            <span class="detail-label">Total</span>
-            <span class="detail-value" id="val-total">0</span>
+          <div class="detail-rows" id="codex-token-details">
+            <div class="detail-row">
+              <span class="detail-label">Input</span>
+              <span class="detail-value" id="codex-val-input">0</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Cached Input</span>
+              <span class="detail-value" id="codex-val-cached">0</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Output</span>
+              <span class="detail-value" id="codex-val-output">0</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Reasoning</span>
+              <span class="detail-value" id="codex-val-reasoning">0</span>
+            </div>
+            <div class="detail-row total">
+              <span class="detail-label">Total</span>
+              <span class="detail-value" id="codex-val-total">0</span>
+            </div>
           </div>
         </div>
       </div>
@@ -534,6 +682,9 @@
   </div>
 
 <script>
+var currentTab = 'claude';
+var latestData = null;
+
 function formatTokens(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
@@ -546,79 +697,133 @@ function statusClass(pct) {
   return 'safe';
 }
 
+function switchTab(tab) {
+  if (tab === 'codex' && document.getElementById('tab-codex').classList.contains('disabled')) return;
+  currentTab = tab;
+  document.getElementById('tab-claude').className = tab === 'claude' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tab-codex').className = tab === 'codex' ? 'tab-btn active' : (latestData && latestData.codex ? 'tab-btn' : 'tab-btn disabled');
+  document.getElementById('content-claude').className = tab === 'claude' ? 'tab-content active' : 'tab-content';
+  document.getElementById('content-codex').className = tab === 'codex' ? 'tab-content active' : 'tab-content';
+
+  // Update header
+  var title = document.getElementById('header-title');
+  var planBadge = document.getElementById('plan-badge');
+  var srcBadge = document.getElementById('source-badge');
+
+  if (tab === 'codex' && latestData && latestData.codex) {
+    title.textContent = 'Codex';
+    planBadge.textContent = latestData.codex.plan_type ? capitalize(latestData.codex.plan_type) : '';
+    planBadge.style.display = latestData.codex.plan_type ? '' : 'none';
+    srcBadge.textContent = 'Local';
+    srcBadge.className = 'badge local';
+  } else {
+    title.textContent = 'Claude Code';
+    planBadge.textContent = 'Max';
+    planBadge.style.display = '';
+    if (latestData) {
+      if (latestData.is_live) {
+        srcBadge.textContent = 'Live';
+        srcBadge.className = 'badge live';
+      } else if (!latestData.auth_missing) {
+        srcBadge.textContent = '...';
+        srcBadge.className = 'badge connecting';
+      }
+      srcBadge.style.display = latestData.auth_missing ? 'none' : '';
+    }
+  }
+}
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function updateData(d) {
+  latestData = d;
+
+  // --- Codex tab state ---
+  var codexTab = document.getElementById('tab-codex');
+  if (d.codex) {
+    codexTab.className = currentTab === 'codex' ? 'tab-btn active' : 'tab-btn';
+    updateCodexTab(d.codex);
+  } else {
+    codexTab.className = currentTab === 'codex' ? 'tab-btn active' : 'tab-btn disabled';
+    document.getElementById('codex-no-data').style.display = '';
+    document.getElementById('codex-usage-section').style.display = 'none';
+  }
+
+  // --- Claude tab ---
   var authSection = document.getElementById('auth-section');
   var connectingSection = document.getElementById('connecting-section');
   var usageSection = document.getElementById('usage-section');
   var srcBadge = document.getElementById('source-badge');
 
-  // State 1: Auth missing → show login prompt
-  if (d.auth_missing) {
-    authSection.className = 'auth-required visible';
-    connectingSection.className = 'connecting-state';
-    usageSection.style.display = 'none';
-    srcBadge.style.display = 'none';
-    return;
-  }
+  // Only update header badges if on claude tab
+  if (currentTab === 'claude') {
+    // State 1: Auth missing
+    if (d.auth_missing) {
+      authSection.className = 'auth-required visible';
+      connectingSection.className = 'connecting-state';
+      usageSection.style.display = 'none';
+      srcBadge.style.display = 'none';
+      return;
+    }
 
-  // State 2: Not live yet (API temporarily unavailable)
-  if (!d.is_live) {
-    authSection.className = 'auth-required';
-    connectingSection.className = 'connecting-state visible';
-    usageSection.style.display = 'none';
-    srcBadge.textContent = '...';
-    srcBadge.className = 'badge connecting';
-    srcBadge.style.display = '';
+    // State 2: Not live yet
+    if (!d.is_live) {
+      authSection.className = 'auth-required';
+      connectingSection.className = 'connecting-state visible';
+      usageSection.style.display = 'none';
+      srcBadge.textContent = '...';
+      srcBadge.className = 'badge connecting';
+      srcBadge.style.display = '';
 
-    // Show error info if available
-    var errMsg = document.getElementById('error-message');
-    var errToggle = document.getElementById('error-toggle');
-    var errDetails = document.getElementById('error-details');
-    if (d.error_message) {
-      errMsg.textContent = d.error_message;
-      errMsg.style.display = '';
-      if (d.error_detail || d.retry_count > 0) {
-        errToggle.style.display = '';
-        var detailText = '';
-        if (d.error_detail) detailText += d.error_detail;
-        if (d.retry_count > 0) detailText += (detailText ? '\n' : '') + 'Retries: ' + d.retry_count;
-        errDetails.textContent = detailText;
+      var errMsg = document.getElementById('error-message');
+      var errToggle = document.getElementById('error-toggle');
+      var errDetails = document.getElementById('error-details');
+      if (d.error_message) {
+        errMsg.textContent = d.error_message;
+        errMsg.style.display = '';
+        if (d.error_detail || d.retry_count > 0) {
+          errToggle.style.display = '';
+          var detailText = '';
+          if (d.error_detail) detailText += d.error_detail;
+          if (d.retry_count > 0) detailText += (detailText ? '\n' : '') + 'Retries: ' + d.retry_count;
+          errDetails.textContent = detailText;
+        } else {
+          errToggle.style.display = 'none';
+          errDetails.className = 'error-details';
+        }
       } else {
+        errMsg.textContent = '';
+        errMsg.style.display = 'none';
         errToggle.style.display = 'none';
         errDetails.className = 'error-details';
       }
-    } else {
-      errMsg.textContent = '';
-      errMsg.style.display = 'none';
-      errToggle.style.display = 'none';
-      errDetails.className = 'error-details';
+      return;
     }
-    return;
+
+    // State 3: Live
+    srcBadge.textContent = 'Live';
+    srcBadge.className = 'badge live';
+    srcBadge.style.display = '';
   }
 
-  // State 3: Live data available
   authSection.className = 'auth-required';
   connectingSection.className = 'connecting-state';
   usageSection.style.display = '';
-  srcBadge.textContent = 'Live';
-  srcBadge.className = 'badge live';
-  srcBadge.style.display = '';
 
   var h5pct = (d.api_5h_percent != null) ? d.api_5h_percent : 0;
   var w7pct = (d.api_7d_percent != null) ? d.api_7d_percent : 0;
 
-  // 5-hour percentage
   var cls = statusClass(h5pct);
   var pctEl = document.getElementById('pct-value');
   pctEl.textContent = h5pct + '%';
   pctEl.className = 'section-value ' + cls;
 
-  // Progress bar
   var bar = document.getElementById('progress-bar');
   bar.style.width = Math.min(h5pct, 100) + '%';
   bar.className = 'progress-fill ' + cls;
 
-  // Reset text (prefer API reset time)
   var resetText = 'No active session';
   if (d.api_5h_reset) {
     resetText = formatResetTime(d.api_5h_reset);
@@ -627,14 +832,12 @@ function updateData(d) {
   }
   document.getElementById('reset-text').textContent = resetText;
 
-  // Token values
   document.getElementById('val-input').textContent = formatTokens(d.total_input_tokens);
   document.getElementById('val-output').textContent = formatTokens(d.total_output_tokens);
   document.getElementById('val-cache-write').textContent = formatTokens(d.total_cache_creation_tokens);
   document.getElementById('val-cache-read').textContent = formatTokens(d.total_cache_read_tokens);
   document.getElementById('val-total').textContent = formatTokens(d.total_tokens);
 
-  // Weekly
   var wCls = statusClass(w7pct);
   var wPctEl = document.getElementById('weekly-pct-value');
   wPctEl.textContent = w7pct + '%';
@@ -654,8 +857,51 @@ function updateData(d) {
   document.getElementById('weekly-tokens-text').textContent =
     formatTokens(d.weekly_total_tokens) + ' tokens \u00b7 ' + d.weekly_message_count + ' msgs';
 
-  // Updated timestamp
   document.getElementById('updated-text').textContent = 'Updated just now';
+}
+
+function updateCodexTab(c) {
+  document.getElementById('codex-no-data').style.display = 'none';
+  document.getElementById('codex-usage-section').style.display = '';
+
+  var h5pct = (c.primary_percent != null) ? c.primary_percent : 0;
+  var w7pct = (c.secondary_percent != null) ? c.secondary_percent : 0;
+
+  var cls = statusClass(h5pct);
+  var pctEl = document.getElementById('codex-pct-value');
+  pctEl.textContent = h5pct + '%';
+  pctEl.className = 'section-value ' + cls;
+
+  var bar = document.getElementById('codex-progress-bar');
+  bar.style.width = Math.min(h5pct, 100) + '%';
+  bar.className = 'progress-fill ' + cls;
+
+  var resetText = 'No active session';
+  if (c.primary_resets_at) {
+    resetText = formatResetTime(c.primary_resets_at);
+  }
+  document.getElementById('codex-reset-text').textContent = resetText;
+
+  var wCls = statusClass(w7pct);
+  var wPctEl = document.getElementById('codex-weekly-pct-value');
+  wPctEl.textContent = w7pct + '%';
+  wPctEl.className = 'section-value ' + wCls;
+
+  var wBar = document.getElementById('codex-weekly-progress-bar');
+  wBar.style.width = Math.min(w7pct, 100) + '%';
+  wBar.className = 'progress-fill ' + wCls;
+
+  var weeklyResetText = 'No activity';
+  if (c.secondary_resets_at) {
+    weeklyResetText = formatResetTime(c.secondary_resets_at);
+  }
+  document.getElementById('codex-weekly-reset-text').textContent = weeklyResetText;
+
+  document.getElementById('codex-val-input').textContent = formatTokens(c.input_tokens);
+  document.getElementById('codex-val-cached').textContent = formatTokens(c.cached_input_tokens);
+  document.getElementById('codex-val-output').textContent = formatTokens(c.output_tokens);
+  document.getElementById('codex-val-reasoning').textContent = formatTokens(c.reasoning_output_tokens);
+  document.getElementById('codex-val-total').textContent = formatTokens(c.total_tokens);
 }
 
 function showUpdateBanner(version) {
@@ -679,6 +925,18 @@ function toggleAutoLaunch() {
 function toggleTokenDetails() {
   var details = document.getElementById('token-details');
   var chevron = document.getElementById('token-chevron');
+  if (details.classList.contains('expanded')) {
+    details.className = 'detail-rows';
+    chevron.className = 'chevron';
+  } else {
+    details.className = 'detail-rows expanded';
+    chevron.className = 'chevron expanded';
+  }
+}
+
+function toggleCodexTokenDetails() {
+  var details = document.getElementById('codex-token-details');
+  var chevron = document.getElementById('codex-token-chevron');
   if (details.classList.contains('expanded')) {
     details.className = 'detail-rows';
     chevron.className = 'chevron';

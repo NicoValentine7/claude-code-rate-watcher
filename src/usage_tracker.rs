@@ -1,6 +1,7 @@
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::Serialize;
 
+use crate::codex_parser::CodexUsage;
 use crate::session_parser::UsageRecord;
 
 pub const WINDOW_HOURS: i64 = 5;
@@ -67,6 +68,8 @@ pub struct UsagePayload {
     pub error_message: Option<String>,
     pub error_detail: Option<String>,
     pub retry_count: u32,
+    // Codex data
+    pub codex: Option<CodexUsage>,
 }
 
 impl UsageSummary {
@@ -87,6 +90,7 @@ impl UsageSummary {
     pub fn to_payload(
         &self,
         api_data: &crate::api_client::ApiRateLimitData,
+        codex: Option<CodexUsage>,
     ) -> UsagePayload {
         UsagePayload {
             usage_percent: self.usage_percent,
@@ -110,6 +114,7 @@ impl UsageSummary {
             error_message: api_data.error_message.clone(),
             error_detail: api_data.error_detail.clone(),
             retry_count: api_data.retry_count,
+            codex,
         }
     }
 }
