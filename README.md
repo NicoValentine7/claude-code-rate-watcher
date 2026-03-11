@@ -56,6 +56,11 @@ cargo build --release
 
 > これらは Max プランのヒューリスティック推定値です。`src/usage_tracker.rs` の定数を調整して利用してください。
 
+## Roadmap
+
+- [ ] 使用履歴トラッキング — レートリミット使用率の記録・可視化
+- [ ] アカウント連携（GitHub / Google ログイン）でクラウド同期
+
 ## License
 
 MIT
