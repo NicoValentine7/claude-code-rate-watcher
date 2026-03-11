@@ -30,6 +30,12 @@ const POPOVER_WIDTH: f64 = 340.0;
 const POPOVER_HEIGHT: f64 = 470.0;
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--version" || a == "-V") {
+        println!("ccrw {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+
     let event_loop = EventLoopBuilder::<AppEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();
 
