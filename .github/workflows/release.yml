@@ -32,6 +32,9 @@ jobs:
             target/x86_64-apple-darwin/release/claude-code-rate-watcher \
             -output claude-code-rate-watcher
 
+      - name: Ad-hoc code sign
+        run: codesign --force --deep -s - claude-code-rate-watcher
+
       - name: Package tarball
         run: |
           tar czf claude-code-rate-watcher-macos-universal.tar.gz claude-code-rate-watcher
