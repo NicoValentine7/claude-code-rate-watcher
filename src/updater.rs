@@ -207,11 +207,14 @@ pub fn restart_app(binary: &PathBuf) -> ! {
         std::process::exit(0);
     }
 
-    // Terminal launch: exec directly
-    use std::os::unix::process::CommandExt;
-    let err = std::process::Command::new(binary).exec();
-    eprintln!("restart failed: {}", err);
-    std::process::exit(1);
+    // Spawn new process via shell with a short delay so this process can
+    // fully exit and release the macOS WindowServer / tray icon resources
+    // before the new instance starts up.
+    let bin_str = binary.to_string_lossy().to_string();
+    let _ = std::process::Command::new("sh")
+        .args(["-c", &format!("sleep 1 && exec \"{}\"", bin_str)])
+        .spawn();
+    std::process::exit(0);
 }
 
 /// Walk up the path to find a `.app` bundle parent directory.
