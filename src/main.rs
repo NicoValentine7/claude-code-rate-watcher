@@ -5,10 +5,8 @@ mod autolaunch;
 mod file_watcher;
 mod icon;
 mod notification;
-mod session_parser;
 mod tray;
 mod updater;
-mod usage_tracker;
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -127,12 +125,10 @@ fn main() {
     api_poller.poll(); // Initial fetch
 
     // --- Initial data load ---
-    let mut all_records = session_parser::load_all_sessions();
-    let summary = usage_tracker::calculate_usage(&all_records);
     let api_data = api_poller.get_data();
     let effective_pct = api_data.five_hour_percent.unwrap_or(0);
     tray_app.update_percent(effective_pct);
-    push_to_webview(&webview, &summary, &api_data);
+    push_to_webview(&webview, &api_data);
     // Enable auto-launch by default on first run
     if !autolaunch::is_enabled() {
         let _ = autolaunch::enable();
@@ -222,23 +218,20 @@ fn main() {
                 }
                 last_reload = Instant::now();
 
-                all_records = session_parser::load_all_sessions();
-                let summary = usage_tracker::calculate_usage(&all_records);
                 api_poller.poll();
                 let api_data = api_poller.get_data();
                 let effective_pct = api_data.five_hour_percent.unwrap_or(0);
                 tray_app.update_percent(effective_pct);
-                push_to_webview(&webview, &summary, &api_data);
+                push_to_webview(&webview, &api_data);
                 notifier.check_and_notify(effective_pct);
             }
 
             Event::UserEvent(AppEvent::TimerTick) => {
-                let summary = usage_tracker::calculate_usage(&all_records);
                 api_poller.poll();
                 let api_data = api_poller.get_data();
                 let effective_pct = api_data.five_hour_percent.unwrap_or(0);
                 tray_app.update_percent(effective_pct);
-                push_to_webview(&webview, &summary, &api_data);
+                push_to_webview(&webview, &api_data);
             }
 
             Event::UserEvent(AppEvent::UpdateAvailable(ref info)) => {
@@ -254,13 +247,8 @@ fn main() {
     });
 }
 
-fn push_to_webview(
-    webview: &wry::WebView,
-    summary: &usage_tracker::UsageSummary,
-    api_data: &api_client::ApiRateLimitData,
-) {
-    let payload = summary.to_payload(api_data);
-    if let Ok(json) = serde_json::to_string(&payload) {
+fn push_to_webview(webview: &wry::WebView, api_data: &api_client::ApiRateLimitData) {
+    if let Ok(json) = serde_json::to_string(api_data) {
         let _ = webview.evaluate_script(&format!("updateData({})", json));
     }
 }

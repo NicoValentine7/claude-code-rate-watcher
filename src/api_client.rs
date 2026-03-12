@@ -54,6 +54,8 @@ struct ApiError {
 /// Shared state for API rate limit data with caching.
 pub struct ApiPoller {
     data: Arc<Mutex<ApiRateLimitData>>,
+    /// Last successfully fetched data (kept across errors for fallback display)
+    last_good: Arc<Mutex<Option<ApiRateLimitData>>>,
     last_fetch: Arc<Mutex<Option<Instant>>>,
     cache_ttl: Arc<Mutex<Duration>>,
 }
@@ -62,13 +64,28 @@ impl ApiPoller {
     pub fn new() -> Self {
         Self {
             data: Arc::new(Mutex::new(ApiRateLimitData::default())),
+            last_good: Arc::new(Mutex::new(None)),
             last_fetch: Arc::new(Mutex::new(None)),
             cache_ttl: Arc::new(Mutex::new(CACHE_TTL)),
         }
     }
 
     pub fn get_data(&self) -> ApiRateLimitData {
-        self.data.lock().unwrap().clone()
+        let data = self.data.lock().unwrap().clone();
+        if data.is_live {
+            return data;
+        }
+        // On error, return last successful data with a stale marker
+        if let Some(good) = self.last_good.lock().unwrap().as_ref() {
+            let mut stale = good.clone();
+            stale.error_message = data.error_message;
+            stale.error_detail = data.error_detail;
+            stale.retry_count = data.retry_count;
+            // Keep the values but mark as not-live so UI can show "stale" badge
+            stale.is_live = false;
+            return stale;
+        }
+        data
     }
 
     /// Fetch rate limit data from the API.
@@ -126,13 +143,18 @@ impl ApiPoller {
         self.try_fetch(&credential);
     }
 
+    fn store_success(&self, result: ApiRateLimitData) {
+        *self.last_good.lock().unwrap() = Some(result.clone());
+        *self.data.lock().unwrap() = result;
+        *self.last_fetch.lock().unwrap() = Some(Instant::now());
+        *self.cache_ttl.lock().unwrap() = CACHE_TTL;
+    }
+
     fn try_fetch(&self, credential: &AuthCredential) {
         // Try /api/oauth/usage first
         match try_usage_api(credential) {
             Ok(result) => {
-                *self.data.lock().unwrap() = result;
-                *self.last_fetch.lock().unwrap() = Some(Instant::now());
-                *self.cache_ttl.lock().unwrap() = CACHE_TTL;
+                self.store_success(result);
                 return;
             }
             Err(err) => {
@@ -144,9 +166,7 @@ impl ApiPoller {
                         if let Ok(_) = auth::refresh_token() {
                             if let Some(new_cred) = auth::get_credential() {
                                 if let Ok(result) = try_usage_api(&new_cred) {
-                                    *self.data.lock().unwrap() = result;
-                                    *self.last_fetch.lock().unwrap() = Some(Instant::now());
-                                    *self.cache_ttl.lock().unwrap() = CACHE_TTL;
+                                    self.store_success(result);
                                     return;
                                 }
                             }
@@ -171,9 +191,7 @@ impl ApiPoller {
         if let AuthCredential::Bearer(token) = credential {
             match try_haiku_probe(token) {
                 Ok(result) => {
-                    *self.data.lock().unwrap() = result;
-                    *self.last_fetch.lock().unwrap() = Some(Instant::now());
-                    *self.cache_ttl.lock().unwrap() = CACHE_TTL;
+                    self.store_success(result);
                     return;
                 }
                 Err(err) => {
@@ -187,9 +205,7 @@ impl ApiPoller {
                                     auth::get_credential()
                                 {
                                     if let Ok(result) = try_haiku_probe(&new_token) {
-                                        *self.data.lock().unwrap() = result;
-                                        *self.last_fetch.lock().unwrap() = Some(Instant::now());
-                                        *self.cache_ttl.lock().unwrap() = CACHE_TTL;
+                                        self.store_success(result);
                                         return;
                                     }
                                 }
