@@ -83,7 +83,19 @@ fn main() {
                 }
                 "auth_login" => {
                     let _ = std::process::Command::new("osascript")
-                        .args(["-e", "tell application \"Terminal\" to do script \"claude login\""])
+                        .args([
+                            "-e",
+                            concat!(
+                                "tell application \"Terminal\"\n",
+                                "  if (count of windows) > 0 then\n",
+                                "    do script \"claude login\" in front window\n",
+                                "  else\n",
+                                "    do script \"claude login\"\n",
+                                "  end if\n",
+                                "  activate\n",
+                                "end tell"
+                            ),
+                        ])
                         .spawn();
                 }
                 "toggle_launch_at_login" => {

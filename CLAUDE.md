@@ -48,14 +48,19 @@ cargo run                # 開発実行（バイナリ名: ccrw）
 
 ### Worktree でのビルド
 
-Worktree で作業する場合、ビルド後のバイナリはメインリポジトリの `builds/` にわかりやすい名前でコピーすること：
+Worktree で作業する場合：
+
+1. ビルド後のバイナリはメインリポジトリの `builds/` にわかりやすい名前でコピー
+2. `CCRW_DEBUG_LABEL` 環境変数でメニューバーにデバッグ名を表示して起動
 
 ```bash
 mkdir -p /Users/nico/projects/claude-code-rate-watcher/builds
 cp target/release/ccrw /Users/nico/projects/claude-code-rate-watcher/builds/ccrw-<変更内容の要約>
+CCRW_DEBUG_LABEL="<変更内容>" /Users/nico/projects/claude-code-rate-watcher/builds/ccrw-<名前> &
 ```
 
-例: `ccrw-inline-settings-menu`, `ccrw-fix-transparency` など
+例: `CCRW_DEBUG_LABEL="inline-menu" builds/ccrw-inline-settings-menu &`
+→ メニューバーに `[inline-menu] 65%` と表示される
 
 ## Install
 
