@@ -8,6 +8,7 @@ mod notification;
 mod tray;
 mod updater;
 
+use std::fs;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
@@ -35,6 +36,9 @@ fn main() {
         println!("ccrw {}", env!("CARGO_PKG_VERSION"));
         return;
     }
+
+    // Single instance guard: kill any existing ccrw process
+    ensure_single_instance();
 
     // Create .app bundle in /Applications on first run
     app_bundle::ensure_app_bundle();
@@ -253,4 +257,29 @@ fn push_to_webview(webview: &wry::WebView, api_data: &api_client::ApiRateLimitDa
     if let Ok(json) = serde_json::to_string(api_data) {
         let _ = webview.evaluate_script(&format!("updateData({})", json));
     }
+}
+
+/// Kill any other running ccrw process so only one instance runs at a time.
+fn ensure_single_instance() {
+    let pid_file = dirs::cache_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"))
+        .join("ccrw.pid");
+
+    let my_pid = std::process::id();
+
+    // Check for existing instance
+    if let Ok(content) = fs::read_to_string(&pid_file) {
+        if let Ok(old_pid) = content.trim().parse::<i32>() {
+            // Check if process is still alive
+            if unsafe { libc::kill(old_pid, 0) } == 0 {
+                // Kill the old instance gracefully
+                unsafe { libc::kill(old_pid, libc::SIGTERM) };
+                // Wait briefly for it to exit
+                std::thread::sleep(Duration::from_millis(500));
+            }
+        }
+    }
+
+    // Write our PID
+    let _ = fs::write(&pid_file, my_pid.to_string());
 }

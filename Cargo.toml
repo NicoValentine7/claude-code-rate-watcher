@@ -1,6 +1,6 @@
 [package]
 name = "claude-code-rate-watcher"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2024"
 
 [[bin]]
@@ -22,3 +22,4 @@ ureq = { version = "3", features = ["json"] }
 semver = "1"
 flate2 = "1"
 tar = "0.4"
+libc = "0.2"
