@@ -24,11 +24,12 @@ enum AppEvent {
     FileChanged,
     TimerTick,
     UpdateAvailable(updater::UpdateInfo),
+    Resize(f64),
 }
 
 const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
 const POPOVER_WIDTH: f64 = 340.0;
-const POPOVER_HEIGHT: f64 = 470.0;
+const POPOVER_HEIGHT: f64 = 200.0;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -85,6 +86,11 @@ fn main() {
                 }
                 "toggle_launch_at_login" => {
                     let _ = autolaunch::toggle();
+                }
+                msg if msg.starts_with("resize:") => {
+                    if let Ok(h) = msg[7..].parse::<f64>() {
+                        let _ = proxy_ipc.send_event(AppEvent::Resize(h));
+                    }
                 }
                 "apply_update" => {
                     if updater::is_homebrew_install() {
@@ -238,6 +244,11 @@ fn main() {
                 let effective_pct = api_data.five_hour_percent.unwrap_or(0);
                 tray_app.update_percent(effective_pct);
                 push_to_webview(&webview, &api_data);
+            }
+
+            Event::UserEvent(AppEvent::Resize(height)) => {
+                let clamped = height.max(100.0).min(600.0);
+                window.set_inner_size(LogicalSize::new(POPOVER_WIDTH, clamped));
             }
 
             Event::UserEvent(AppEvent::UpdateAvailable(ref info)) => {

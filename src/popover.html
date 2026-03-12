@@ -104,7 +104,7 @@
   /* Connecting state */
   .connecting-state {
     display: none;
-    padding: 32px 24px;
+    padding: 16px 24px;
     text-align: center;
   }
 
@@ -113,8 +113,8 @@
   }
 
   .connecting-spinner {
-    font-size: 28px;
-    margin-bottom: 12px;
+    font-size: 20px;
+    margin-bottom: 8px;
     animation: pulse 1.5s ease-in-out infinite;
   }
 
@@ -537,6 +537,10 @@ function updateData(d) {
     connectingSection.className = 'connecting-state';
     usageSection.style.display = 'none';
     srcBadge.style.display = 'none';
+    requestAnimationFrame(function() {
+      var h = document.querySelector('.popover').scrollHeight;
+      window.ipc.postMessage('resize:' + h);
+    });
     return;
   }
 
@@ -574,6 +578,11 @@ function updateData(d) {
         errToggle.style.display = 'none';
         errDetails.className = 'error-details';
       }
+      // Resize popover to fit content
+      requestAnimationFrame(function() {
+        var h = document.querySelector('.popover').scrollHeight;
+        window.ipc.postMessage('resize:' + h);
+      });
       return;
     }
     // Has cached data → show it with "Stale" badge, fall through to rendering
@@ -633,6 +642,12 @@ function updateData(d) {
 
   // Updated timestamp
   document.getElementById('updated-text').textContent = 'Updated just now';
+
+  // Resize popover to fit content
+  requestAnimationFrame(function() {
+    var h = document.querySelector('.popover').scrollHeight;
+    window.ipc.postMessage('resize:' + h);
+  });
 }
 
 function setVersion(v) {
