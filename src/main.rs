@@ -82,9 +82,15 @@ fn main() {
                         .spawn();
                 }
                 "auth_login" => {
-                    let _ = std::process::Command::new("claude")
-                        .args(["auth", "login"])
-                        .spawn();
+                    let proxy_auth = proxy_ipc.clone();
+                    std::thread::spawn(move || {
+                        let status = std::process::Command::new("claude")
+                            .args(["auth", "login"])
+                            .status();
+                        if matches!(status, Ok(s) if s.success()) {
+                            let _ = proxy_auth.send_event(AppEvent::TimerTick);
+                        }
+                    });
                 }
                 "toggle_launch_at_login" => {
                     let _ = autolaunch::toggle();
