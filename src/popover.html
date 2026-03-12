@@ -16,9 +16,10 @@
   .popover {
     position: relative;
     overflow: visible;
-    background: rgba(36, 36, 38, 0.96);
+    background: #242426;
+    border: none;
+    outline: none;
     border-radius: 12px;
-    border: 0.5px solid rgba(255, 255, 255, 0.1);
   }
 
   /* Header */
@@ -326,38 +327,52 @@
     font-weight: 600;
   }
 
-  /* Settings toggle */
+  /* Settings gear */
   .settings-wrap {
-    display: flex;
-    justify-content: center;
-    padding: 2px 0 4px;
-    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
-    cursor: pointer;
-  }
-
-  .settings-wrap:hover .settings-btn {
-    color: rgba(255, 255, 255, 0.55);
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 50;
+    /* no shadow — causes transparent frame artifacts on WebView */
   }
 
   .settings-btn {
     background: none;
     border: none;
-    font-size: 10px;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.2);
-    transition: color 0.15s, transform 0.2s;
-    padding: 0;
+    opacity: 0.25;
+    transition: opacity 0.15s;
+    padding: 2px;
     line-height: 1;
+    display: flex;
+    align-items: center;
   }
 
-  .settings-btn.expanded {
-    transform: rotate(180deg);
+  .settings-btn:hover {
+    opacity: 0.6;
+  }
+
+  .settings-btn svg {
+    width: 14px;
+    height: 14px;
   }
 
   .settings-menu {
     display: none;
-    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: #323234;
+    border: none;
+    outline: none;
+    border-radius: 0;
+    min-width: 170px;
     padding: 4px 0;
+    z-index: 100;
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    clip-path: inset(0 round 8px);
+    box-shadow: none;
   }
 
   .settings-menu.open {
@@ -525,22 +540,24 @@
 
     </div>
 
-    <!-- Settings toggle -->
-    <div class="settings-wrap" onclick="toggleSettingsMenu(event)">
-      <span class="settings-btn" id="settings-toggle-btn">&#x2304;</span>
-    </div>
-
-    <!-- Settings menu (inline, inside .popover) -->
-    <div class="settings-menu">
-      <button class="settings-item" onclick="closeSettingsMenu(); window.ipc.postMessage('open_usage')">View Usage Dashboard</button>
-      <button class="settings-item" id="check-update-item" onclick="checkForUpdates()">Check for Updates</button>
-      <div class="settings-sep"></div>
-      <button class="settings-item" id="autolaunch-item" onclick="toggleAutoLaunch()">
-        <span>Launch at Login</span>
-        <span class="settings-check" id="autolaunch-check">&#x2713;</span>
+    <!-- Settings gear (bottom-right) -->
+    <div class="settings-wrap">
+      <button class="settings-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15 1.65 1.65 0 003 14.08V14a2 2 0 010-4v.09c.04-.9-.6-1.7-1.51-1.82A1.65 1.65 0 004.6 9l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06c.5.5 1.2.7 1.82.33H9c.77-.36 1.27-1.12 1.24-1.95V3a2 2 0 014 0v.09c-.03.83.47 1.59 1.24 1.95.62.37 1.32.17 1.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06c-.5.5-.7 1.2-.33 1.82V9c.36.77 1.12 1.27 1.95 1.24H21a2 2 0 010 4h-.09"/>
+        </svg>
       </button>
-      <div class="settings-sep"></div>
-      <button class="settings-item danger" onclick="window.ipc.postMessage('quit')">Quit</button>
+      <div class="settings-menu">
+        <button class="settings-item" onclick="closeSettingsMenu(); window.ipc.postMessage('open_usage')">View Usage Dashboard</button>
+        <button class="settings-item" id="check-update-item" onclick="checkForUpdates()">Check for Updates</button>
+        <div class="settings-sep"></div>
+        <button class="settings-item" id="autolaunch-item" onclick="toggleAutoLaunch()">
+          <span>Launch at Login</span>
+          <span class="settings-check" id="autolaunch-check">&#x2713;</span>
+        </button>
+        <div class="settings-sep"></div>
+        <button class="settings-item danger" onclick="window.ipc.postMessage('quit')">Quit</button>
+      </div>
     </div>
 
   </div>
@@ -725,44 +742,43 @@ function setAutoLaunch(enabled) {
   check.className = enabled ? 'settings-check on' : 'settings-check';
 }
 
-function toggleSettingsMenu(e) {
-  e.stopPropagation();
-  var menu = document.querySelector('.settings-menu');
-  var btn = document.getElementById('settings-toggle-btn');
-  var isOpen = menu.classList.contains('open');
-  if (isOpen) {
-    closeSettingsMenu();
-  } else {
-    menu.classList.add('open');
-    btn.classList.add('expanded');
-    requestAnimationFrame(function() {
-      var h = document.querySelector('.popover').scrollHeight;
-      window.ipc.postMessage('resize:' + h);
-    });
-  }
-}
-
-function closeSettingsMenu() {
-  var menu = document.querySelector('.settings-menu');
-  var btn = document.getElementById('settings-toggle-btn');
-  menu.classList.remove('open');
-  btn.classList.remove('expanded');
-  requestAnimationFrame(function() {
-    var h = document.querySelector('.popover').scrollHeight;
-    window.ipc.postMessage('resize:' + h);
-  });
-}
-
-// Close menu when clicking outside
-document.addEventListener('click', function(e) {
+// Hover-based settings menu with window resize
+(function() {
   var wrap = document.querySelector('.settings-wrap');
-  if (wrap && !wrap.contains(e.target)) {
-    var menu = document.querySelector('.settings-menu');
-    if (menu.classList.contains('open')) {
-      closeSettingsMenu();
-    }
-  }
-});
+  var menu = document.querySelector('.settings-menu');
+  var hideTimer = null;
+
+  var popoverEl = document.querySelector('.popover');
+
+  wrap.addEventListener('mouseenter', function() {
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    menu.classList.add('open');
+    // Remove bottom border-radius so no transparent gap shows
+    popoverEl.style.borderBottomLeftRadius = '0';
+    popoverEl.style.borderBottomRightRadius = '0';
+    // Expand window to fit menu below
+    requestAnimationFrame(function() {
+      var menuRect = menu.getBoundingClientRect();
+      var needed = menuRect.bottom + 8;
+      window.ipc.postMessage('resize:' + needed);
+    });
+  });
+
+  wrap.addEventListener('mouseleave', function() {
+    hideTimer = setTimeout(function() {
+      // Shrink window FIRST, then hide menu after window has resized
+      var btn = document.querySelector('.settings-wrap .settings-btn');
+      var h = btn ? btn.getBoundingClientRect().bottom + 12 : popoverEl.scrollHeight;
+      window.ipc.postMessage('resize:' + h);
+      // Restore border-radius and hide menu after window shrinks
+      setTimeout(function() {
+        menu.classList.remove('open');
+        popoverEl.style.borderBottomLeftRadius = '';
+        popoverEl.style.borderBottomRightRadius = '';
+      }, 50);
+    }, 200);
+  });
+})();
 
 function checkForUpdates() {
   var item = document.getElementById('check-update-item');
