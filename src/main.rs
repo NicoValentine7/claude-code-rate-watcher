@@ -24,6 +24,7 @@ enum AppEvent {
     FileChanged,
     TimerTick,
     UpdateAvailable(updater::UpdateInfo),
+    UpdateNotAvailable,
     Resize(f64),
 }
 
@@ -70,6 +71,7 @@ fn main() {
     let updater_ipc = app_updater.clone();
     let webview = WebViewBuilder::new()
         .with_transparent(true)
+        .with_background_color((0, 0, 0, 0))
         .with_html(html)
         .with_ipc_handler(move |msg| {
             match msg.body().as_str() {
@@ -91,6 +93,20 @@ fn main() {
                     if let Ok(h) = msg[7..].parse::<f64>() {
                         let _ = proxy_ipc.send_event(AppEvent::Resize(h));
                     }
+                }
+                "check_update" => {
+                    let updater_check = updater_ipc.clone();
+                    let proxy_check = proxy_ipc.clone();
+                    std::thread::spawn(move || {
+                        match updater_check.check() {
+                            Some(info) => {
+                                let _ = proxy_check.send_event(AppEvent::UpdateAvailable(info));
+                            }
+                            None => {
+                                let _ = proxy_check.send_event(AppEvent::UpdateNotAvailable);
+                            }
+                        }
+                    });
                 }
                 "apply_update" => {
                     if updater::is_homebrew_install() {
@@ -257,6 +273,10 @@ fn main() {
                     info.version.replace('\'', "\\'")
                 );
                 let _ = webview.evaluate_script(&js);
+            }
+
+            Event::UserEvent(AppEvent::UpdateNotAvailable) => {
+                let _ = webview.evaluate_script("showUpToDate()");
             }
 
             _ => {}

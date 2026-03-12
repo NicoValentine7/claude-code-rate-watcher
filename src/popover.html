@@ -7,14 +7,18 @@
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-    background: rgba(36, 36, 38, 0.96);
+    background: transparent;
     color: #fff;
     -webkit-user-select: none;
     user-select: none;
   }
 
   .popover {
-    overflow: hidden;
+    position: relative;
+    overflow: visible;
+    background: rgba(36, 36, 38, 0.96);
+    border-radius: 12px;
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
   }
 
   /* Header */
@@ -132,6 +136,29 @@
     font-size: 12px;
     color: #FF453A;
     margin-top: 8px;
+  }
+
+  .error-message.soft {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .relogin-btn {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    color: #A5A4F3;
+    background: rgba(88, 86, 214, 0.15);
+    border: 0.5px solid rgba(88, 86, 214, 0.3);
+    border-radius: 6px;
+    padding: 6px 14px;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .relogin-btn:hover {
+    background: rgba(88, 86, 214, 0.25);
   }
 
   .error-detail-toggle {
@@ -299,38 +326,86 @@
     font-weight: 600;
   }
 
-  /* Footer */
-  .footer {
+  /* Settings gear */
+  .settings-wrap {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 50;
+  }
+
+  .settings-btn {
+    background: none;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.15s;
+    padding: 2px;
+    line-height: 1;
+  }
+
+  .settings-btn:hover {
+    opacity: 0.7;
+  }
+
+  .settings-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: rgba(50, 50, 52, 0.98);
+    border: 0.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    min-width: 170px;
+    padding: 4px 0;
+    z-index: 100;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  .settings-menu.open {
+    display: block;
+  }
+
+  .settings-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 16px;
-    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
-  }
-
-  .updated {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.3);
-  }
-
-  .footer-actions {
-    display: flex;
-    gap: 16px;
-  }
-
-  .footer-btn {
+    justify-content: space-between;
+    padding: 7px 12px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.75);
     cursor: pointer;
     background: none;
     border: none;
     font-family: inherit;
-    padding: 2px 0;
-    transition: color 0.15s;
+    width: 100%;
+    text-align: left;
+    transition: background 0.1s;
   }
 
-  .footer-btn:hover {
-    color: rgba(255, 255, 255, 0.8);
+  .settings-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .settings-sep {
+    height: 0.5px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 0;
+  }
+
+  .settings-check {
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .settings-check.on {
+    opacity: 1;
+  }
+
+  .settings-item.danger {
+    color: rgba(255, 69, 58, 0.85);
   }
 
   /* Update banner */
@@ -382,51 +457,6 @@
     background: rgba(88, 86, 214, 0.2);
   }
 
-  /* Auto-launch toggle */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
-  }
-
-  .toggle-label {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
-  }
-
-  .toggle-switch {
-    position: relative;
-    width: 36px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background 0.2s;
-    border: none;
-    padding: 0;
-  }
-
-  .toggle-switch.on {
-    background: #30D158;
-  }
-
-  .toggle-switch::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 16px;
-    height: 16px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.2s;
-  }
-
-  .toggle-switch.on::after {
-    transform: translateX(16px);
-  }
 </style>
 </head>
 <body>
@@ -463,6 +493,7 @@
       <div class="connecting-spinner">&#x1F4E1;</div>
       <div class="connecting-text">Connecting to API...</div>
       <div class="error-message" id="error-message"></div>
+      <button class="relogin-btn" id="relogin-btn" onclick="window.ipc.postMessage('auth_login')" style="display:none">Re-login with Claude Code</button>
       <button class="error-detail-toggle" id="error-toggle" onclick="toggleErrorDetails()" style="display:none">Show details</button>
       <div class="error-details" id="error-details"></div>
     </div>
@@ -498,18 +529,22 @@
 
     </div>
 
-    <div class="toggle-row">
-      <span class="toggle-label">Launch at Login</span>
-      <button class="toggle-switch" id="autolaunch-toggle" onclick="toggleAutoLaunch()"></button>
-    </div>
-
-    <div class="footer">
-      <span class="updated" id="updated-text">Updated just now</span>
-      <div class="footer-actions">
-        <button class="footer-btn" onclick="window.ipc.postMessage('open_usage')">Usage</button>
-        <button class="footer-btn" id="btn-quit" onclick="window.ipc.postMessage('quit')">Quit</button>
+    <!-- Settings gear (bottom-right) -->
+    <div class="settings-wrap">
+      <button class="settings-btn" onclick="toggleSettingsMenu(event)">&#x2699;&#xFE0F;</button>
+      <div class="settings-menu">
+        <button class="settings-item" onclick="closeSettingsMenu(); window.ipc.postMessage('open_usage')">View Usage Dashboard</button>
+        <button class="settings-item" id="check-update-item" onclick="checkForUpdates()">Check for Updates</button>
+        <div class="settings-sep"></div>
+        <button class="settings-item" id="autolaunch-item" onclick="toggleAutoLaunch()">
+          <span>Launch at Login</span>
+          <span class="settings-check" id="autolaunch-check">&#x2713;</span>
+        </button>
+        <div class="settings-sep"></div>
+        <button class="settings-item danger" onclick="window.ipc.postMessage('quit')">Quit</button>
       </div>
     </div>
+
   </div>
 
 <script>
@@ -560,7 +595,30 @@ function updateData(d) {
       var errToggle = document.getElementById('error-toggle');
       var errDetails = document.getElementById('error-details');
       if (d.error_message) {
-        errMsg.textContent = d.error_message;
+        var isRateLimit = d.error_message.indexOf('429') !== -1 || d.error_message.indexOf('Rate limit') !== -1;
+        if (isRateLimit) {
+          document.querySelector('.connecting-spinner').textContent = '\u23F3';
+          document.querySelector('.connecting-text').textContent = 'Waiting for API...';
+          if (d.retry_at) {
+            startRetryCountdown(d.retry_at, errMsg);
+          } else {
+            errMsg.textContent = 'Auto-recovers in a few minutes';
+          }
+          errMsg.className = 'error-message soft';
+          // Show re-login button after multiple retries
+          var reloginBtn = document.getElementById('relogin-btn');
+          if (d.retry_count >= 2) {
+            reloginBtn.style.display = '';
+          } else {
+            reloginBtn.style.display = 'none';
+          }
+        } else {
+          document.querySelector('.connecting-spinner').textContent = '\uD83D\uDCE1';
+          document.querySelector('.connecting-text').textContent = 'Connecting to API...';
+          errMsg.textContent = d.error_message;
+          errMsg.className = 'error-message';
+          document.getElementById('relogin-btn').style.display = 'none';
+        }
         errMsg.style.display = '';
         if (d.error_detail || d.retry_count > 0) {
           errToggle.style.display = '';
@@ -577,6 +635,7 @@ function updateData(d) {
         errMsg.style.display = 'none';
         errToggle.style.display = 'none';
         errDetails.className = 'error-details';
+        document.getElementById('relogin-btn').style.display = 'none';
       }
       // Resize popover to fit content
       requestAnimationFrame(function() {
@@ -585,9 +644,10 @@ function updateData(d) {
       });
       return;
     }
-    // Has cached data → show it with "Stale" badge, fall through to rendering
-    srcBadge.textContent = 'Stale';
+    // Has cached data → show it with "Retrying" badge, fall through to rendering
+    srcBadge.textContent = 'Retrying';
     srcBadge.className = 'badge connecting';
+    srcBadge.title = d.error_message ? d.error_message + ' — auto-recovers shortly' : '';
     srcBadge.style.display = '';
   }
 
@@ -640,9 +700,6 @@ function updateData(d) {
   document.getElementById('weekly-reset-text').textContent = weeklyResetText;
   document.getElementById('weekly-tokens-text').textContent = '';
 
-  // Updated timestamp
-  document.getElementById('updated-text').textContent = 'Updated just now';
-
   // Resize popover to fit content
   requestAnimationFrame(function() {
     var h = document.querySelector('.popover').scrollHeight;
@@ -658,17 +715,80 @@ function showUpdateBanner(version) {
   var banner = document.getElementById('update-banner');
   document.getElementById('update-text').textContent = 'Update available: v' + version;
   banner.className = 'update-banner visible';
+  // Reset check button state
+  var item = document.getElementById('check-update-item');
+  item.textContent = 'Check for Updates';
+  item.style.opacity = '';
+  item.style.pointerEvents = '';
 }
 
 function setAutoLaunch(enabled) {
-  var toggle = document.getElementById('autolaunch-toggle');
-  toggle.className = enabled ? 'toggle-switch on' : 'toggle-switch';
+  var check = document.getElementById('autolaunch-check');
+  check.className = enabled ? 'settings-check on' : 'settings-check';
+}
+
+function toggleSettingsMenu(e) {
+  e.stopPropagation();
+  var menu = document.querySelector('.settings-menu');
+  var isOpen = menu.classList.contains('open');
+  if (isOpen) {
+    closeSettingsMenu();
+  } else {
+    menu.classList.add('open');
+    // Expand window to fit the menu below
+    requestAnimationFrame(function() {
+      var popover = document.querySelector('.popover');
+      var menuRect = menu.getBoundingClientRect();
+      var needed = menuRect.bottom + 8; // 8px padding
+      window.ipc.postMessage('resize:' + needed);
+    });
+  }
+}
+
+function closeSettingsMenu() {
+  var menu = document.querySelector('.settings-menu');
+  menu.classList.remove('open');
+  // Shrink window back to popover content
+  requestAnimationFrame(function() {
+    var h = document.querySelector('.popover').scrollHeight;
+    window.ipc.postMessage('resize:' + h);
+  });
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', function(e) {
+  var wrap = document.querySelector('.settings-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    var menu = document.querySelector('.settings-menu');
+    if (menu.classList.contains('open')) {
+      closeSettingsMenu();
+    }
+  }
+});
+
+function checkForUpdates() {
+  var item = document.getElementById('check-update-item');
+  item.textContent = 'Checking...';
+  item.style.opacity = '0.5';
+  item.style.pointerEvents = 'none';
+  window.ipc.postMessage('check_update');
+}
+
+function showUpToDate() {
+  var item = document.getElementById('check-update-item');
+  item.textContent = 'Up to date \u2713';
+  item.style.opacity = '1';
+  setTimeout(function() {
+    item.textContent = 'Check for Updates';
+    item.style.opacity = '';
+    item.style.pointerEvents = '';
+  }, 3000);
 }
 
 function toggleAutoLaunch() {
-  var toggle = document.getElementById('autolaunch-toggle');
-  var isOn = toggle.classList.contains('on');
-  toggle.className = isOn ? 'toggle-switch' : 'toggle-switch on';
+  var check = document.getElementById('autolaunch-check');
+  var isOn = check.classList.contains('on');
+  check.className = isOn ? 'settings-check' : 'settings-check on';
   window.ipc.postMessage('toggle_launch_at_login');
 }
 
@@ -704,6 +824,25 @@ function toggleErrorDetails() {
     details.className = 'error-details visible';
     toggle.textContent = 'Hide details';
   }
+}
+
+var _retryTimer = null;
+function startRetryCountdown(isoStr, el) {
+  if (_retryTimer) clearInterval(_retryTimer);
+  function update() {
+    var diff = new Date(isoStr) - new Date();
+    if (diff <= 0) {
+      el.textContent = 'Retrying now...';
+      clearInterval(_retryTimer);
+      _retryTimer = null;
+      return;
+    }
+    var m = Math.floor(diff / 60000);
+    var s = Math.floor((diff % 60000) / 1000);
+    el.textContent = 'Retrying in ' + m + ':' + String(s).padStart(2, '0');
+  }
+  update();
+  _retryTimer = setInterval(update, 1000);
 }
 
 function formatResetTime(isoStr) {

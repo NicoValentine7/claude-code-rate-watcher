@@ -7,6 +7,7 @@ const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const MESSAGES_API_URL: &str = "https://api.anthropic.com/v1/messages";
 const CACHE_TTL: Duration = Duration::from_secs(60);
 const CACHE_TTL_RATE_LIMITED: Duration = Duration::from_secs(300);
+const CACHE_TTL_RATE_LIMITED_FIRST: Duration = Duration::from_secs(15);
 
 /// Rate limit data from the API.
 #[derive(Debug, Clone, Default, Serialize)]
@@ -29,6 +30,8 @@ pub struct ApiRateLimitData {
     pub error_detail: Option<String>,
     /// Consecutive failure count
     pub retry_count: u32,
+    /// When the next retry will happen (ISO 8601), for UI countdown
+    pub retry_at: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -81,6 +84,7 @@ impl ApiPoller {
             stale.error_message = data.error_message;
             stale.error_detail = data.error_detail;
             stale.retry_count = data.retry_count;
+            stale.retry_at = data.retry_at;
             // Keep the values but mark as not-live so UI can show "stale" badge
             stale.is_live = false;
             return stale;
@@ -175,13 +179,22 @@ impl ApiPoller {
                 }
 
                 if err.is_rate_limited {
+                    let current_count = self.data.lock().unwrap().retry_count;
+                    // First 429: short retry (15s). Subsequent: full backoff (300s).
+                    let backoff = if current_count == 0 {
+                        CACHE_TTL_RATE_LIMITED_FIRST
+                    } else {
+                        CACHE_TTL_RATE_LIMITED
+                    };
+                    let retry_at = chrono::Utc::now() + chrono::Duration::seconds(backoff.as_secs() as i64);
                     let mut data = self.data.lock().unwrap();
                     data.is_live = false;
                     data.error_message = Some("Rate limited (429)".into());
                     data.error_detail = Some(err.detail);
                     data.retry_count += 1;
+                    data.retry_at = Some(retry_at.to_rfc3339());
                     *self.last_fetch.lock().unwrap() = Some(Instant::now());
-                    *self.cache_ttl.lock().unwrap() = CACHE_TTL_RATE_LIMITED;
+                    *self.cache_ttl.lock().unwrap() = backoff;
                     return;
                 }
             }
@@ -296,6 +309,7 @@ fn try_usage_api(credential: &AuthCredential) -> Result<ApiRateLimitData, ApiErr
         error_message: None,
         error_detail: None,
         retry_count: 0,
+        retry_at: None,
     })
 }
 
@@ -356,6 +370,7 @@ fn try_haiku_probe(bearer_token: &str) -> Result<ApiRateLimitData, ApiError> {
             error_message: None,
             error_detail: None,
             retry_count: 0,
+            retry_at: None,
         })
     } else {
         Err(ApiError {

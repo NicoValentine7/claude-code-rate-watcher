@@ -198,8 +198,30 @@ fn restart(binary: &PathBuf) -> ! {
 }
 
 pub fn restart_app(binary: &PathBuf) -> ! {
+    // If running from .app bundle, use `open` to relaunch so macOS sets up
+    // the proper NSApplication context (required for menu bar tray icon).
+    if let Some(app_path) = find_parent_app_bundle(binary) {
+        let _ = std::process::Command::new("open")
+            .args(["-a", &app_path.to_string_lossy()])
+            .spawn();
+        std::process::exit(0);
+    }
+
+    // Terminal launch: exec directly
     use std::os::unix::process::CommandExt;
     let err = std::process::Command::new(binary).exec();
     eprintln!("restart failed: {}", err);
     std::process::exit(1);
+}
+
+/// Walk up the path to find a `.app` bundle parent directory.
+fn find_parent_app_bundle(binary: &PathBuf) -> Option<PathBuf> {
+    let mut path = binary.as_path();
+    while let Some(parent) = path.parent() {
+        if parent.extension().is_some_and(|ext| ext == "app") {
+            return Some(parent.to_path_buf());
+        }
+        path = parent;
+    }
+    None
 }
