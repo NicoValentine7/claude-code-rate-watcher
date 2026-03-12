@@ -334,6 +334,12 @@
   }
 
   /* Update banner */
+  .version-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.25);
+    font-variant-numeric: tabular-nums;
+  }
+
   .update-banner {
     display: none;
     padding: 10px 16px;
@@ -429,6 +435,8 @@
       <span class="header-title">Claude Code</span>
       <span class="badge" id="plan-badge">Max</span>
       <span class="badge live" id="source-badge">Live</span>
+      <span style="flex:1"></span>
+      <span class="version-label" id="version-label"></span>
     </div>
 
     <!-- Update banner -->
@@ -574,12 +582,15 @@ function updateData(d) {
     srcBadge.style.display = '';
   }
 
-  // State 3: Live data available
+  // State 3: Live or stale-with-cached data
   authSection.className = 'auth-required';
   connectingSection.className = 'connecting-state';
   usageSection.style.display = '';
-  srcBadge.textContent = 'Live';
-  srcBadge.className = 'badge live';
+  if (d.is_live) {
+    srcBadge.textContent = 'Live';
+    srcBadge.className = 'badge live';
+  }
+  // If stale (is_live=false with cached data), badge was already set to "Stale" above
   srcBadge.style.display = '';
 
   var h5pct = (d.five_hour_percent != null) ? d.five_hour_percent : 0;
@@ -622,6 +633,10 @@ function updateData(d) {
 
   // Updated timestamp
   document.getElementById('updated-text').textContent = 'Updated just now';
+}
+
+function setVersion(v) {
+  document.getElementById('version-label').textContent = 'v' + v;
 }
 
 function showUpdateBanner(version) {

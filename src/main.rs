@@ -129,6 +129,8 @@ fn main() {
     let effective_pct = api_data.five_hour_percent.unwrap_or(0);
     tray_app.update_percent(effective_pct);
     push_to_webview(&webview, &api_data);
+    // Set version in UI
+    let _ = webview.evaluate_script(&format!("setVersion('{}')", env!("CARGO_PKG_VERSION")));
     // Enable auto-launch by default on first run
     if !autolaunch::is_enabled() {
         let _ = autolaunch::enable();
