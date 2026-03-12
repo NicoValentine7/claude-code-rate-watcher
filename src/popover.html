@@ -326,42 +326,38 @@
     font-weight: 600;
   }
 
-  /* Settings gear */
+  /* Settings toggle */
   .settings-wrap {
-    position: absolute;
-    bottom: 12px;
-    right: 12px;
-    z-index: 50;
+    display: flex;
+    justify-content: center;
+    padding: 2px 0 4px;
+    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+  }
+
+  .settings-wrap:hover .settings-btn {
+    color: rgba(255, 255, 255, 0.55);
   }
 
   .settings-btn {
     background: none;
     border: none;
-    font-size: 15px;
+    font-size: 10px;
     cursor: pointer;
-    opacity: 0.3;
-    transition: opacity 0.15s;
-    padding: 2px;
+    color: rgba(255, 255, 255, 0.2);
+    transition: color 0.15s, transform 0.2s;
+    padding: 0;
     line-height: 1;
   }
 
-  .settings-btn:hover {
-    opacity: 0.7;
+  .settings-btn.expanded {
+    transform: rotate(180deg);
   }
 
   .settings-menu {
     display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 4px;
-    background: rgba(50, 50, 52, 0.98);
-    border: 0.5px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    min-width: 170px;
+    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
     padding: 4px 0;
-    z-index: 100;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   }
 
   .settings-menu.open {
@@ -529,20 +525,22 @@
 
     </div>
 
-    <!-- Settings gear (bottom-right) -->
-    <div class="settings-wrap">
-      <button class="settings-btn" onclick="toggleSettingsMenu(event)">&#x2699;&#xFE0F;</button>
-      <div class="settings-menu">
-        <button class="settings-item" onclick="closeSettingsMenu(); window.ipc.postMessage('open_usage')">View Usage Dashboard</button>
-        <button class="settings-item" id="check-update-item" onclick="checkForUpdates()">Check for Updates</button>
-        <div class="settings-sep"></div>
-        <button class="settings-item" id="autolaunch-item" onclick="toggleAutoLaunch()">
-          <span>Launch at Login</span>
-          <span class="settings-check" id="autolaunch-check">&#x2713;</span>
-        </button>
-        <div class="settings-sep"></div>
-        <button class="settings-item danger" onclick="window.ipc.postMessage('quit')">Quit</button>
-      </div>
+    <!-- Settings toggle -->
+    <div class="settings-wrap" onclick="toggleSettingsMenu(event)">
+      <span class="settings-btn" id="settings-toggle-btn">&#x2304;</span>
+    </div>
+
+    <!-- Settings menu (inline, inside .popover) -->
+    <div class="settings-menu">
+      <button class="settings-item" onclick="closeSettingsMenu(); window.ipc.postMessage('open_usage')">View Usage Dashboard</button>
+      <button class="settings-item" id="check-update-item" onclick="checkForUpdates()">Check for Updates</button>
+      <div class="settings-sep"></div>
+      <button class="settings-item" id="autolaunch-item" onclick="toggleAutoLaunch()">
+        <span>Launch at Login</span>
+        <span class="settings-check" id="autolaunch-check">&#x2713;</span>
+      </button>
+      <div class="settings-sep"></div>
+      <button class="settings-item danger" onclick="window.ipc.postMessage('quit')">Quit</button>
     </div>
 
   </div>
@@ -730,25 +728,25 @@ function setAutoLaunch(enabled) {
 function toggleSettingsMenu(e) {
   e.stopPropagation();
   var menu = document.querySelector('.settings-menu');
+  var btn = document.getElementById('settings-toggle-btn');
   var isOpen = menu.classList.contains('open');
   if (isOpen) {
     closeSettingsMenu();
   } else {
     menu.classList.add('open');
-    // Expand window to fit the menu below
+    btn.classList.add('expanded');
     requestAnimationFrame(function() {
-      var popover = document.querySelector('.popover');
-      var menuRect = menu.getBoundingClientRect();
-      var needed = menuRect.bottom + 8; // 8px padding
-      window.ipc.postMessage('resize:' + needed);
+      var h = document.querySelector('.popover').scrollHeight;
+      window.ipc.postMessage('resize:' + h);
     });
   }
 }
 
 function closeSettingsMenu() {
   var menu = document.querySelector('.settings-menu');
+  var btn = document.getElementById('settings-toggle-btn');
   menu.classList.remove('open');
-  // Shrink window back to popover content
+  btn.classList.remove('expanded');
   requestAnimationFrame(function() {
     var h = document.querySelector('.popover').scrollHeight;
     window.ipc.postMessage('resize:' + h);
