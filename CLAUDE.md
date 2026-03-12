@@ -46,6 +46,17 @@ cargo build --release    # リリースビルド
 cargo run                # 開発実行（バイナリ名: ccrw）
 ```
 
+### Worktree でのビルド
+
+Worktree で作業する場合、ビルド後のバイナリはメインリポジトリの `builds/` にわかりやすい名前でコピーすること：
+
+```bash
+mkdir -p /Users/nico/projects/claude-code-rate-watcher/builds
+cp target/release/ccrw /Users/nico/projects/claude-code-rate-watcher/builds/ccrw-<変更内容の要約>
+```
+
+例: `ccrw-inline-settings-menu`, `ccrw-fix-transparency` など
+
 ## Install
 
 ```bash
