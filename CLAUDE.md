@@ -117,10 +117,7 @@ ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効
 - Formula: `Formula/claude-code-rate-watcher.rb`
 - インストール: `brew install NicoValentine7/tap/claude-code-rate-watcher`
 - コマンド名: `ccrw`
-- **リリース時**: tarball の sha256 を計算して Formula を更新する必要あり
-  ```bash
-  shasum -a 256 claude-code-rate-watcher-macos-universal.tar.gz
-  ```
+- **リリース時**: GitHub Actions が自動で sha256 を計算し Formula を更新・push する（手動作業不要）
 - Homebrew 経由のインストールでは auto-update が無効化される（`brew upgrade` を使用）
 
 ### インストール先

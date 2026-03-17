@@ -1,7 +1,9 @@
 use std::fs;
 use std::io::Read;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
+use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -210,10 +212,21 @@ pub fn restart_app(binary: &PathBuf) -> ! {
     // Spawn new process via shell with a short delay so this process can
     // fully exit and release the macOS WindowServer / tray icon resources
     // before the new instance starts up.
+    // Use setsid() to create a new session, fully detaching the child
+    // from this process's session so macOS won't kill it on parent exit.
     let bin_str = binary.to_string_lossy().to_string();
-    let _ = std::process::Command::new("sh")
-        .args(["-c", &format!("sleep 1 && exec \"{}\"", bin_str)])
-        .spawn();
+    unsafe {
+        let _ = std::process::Command::new("/bin/sh")
+            .args(["-c", &format!("sleep 2 && exec \"{}\"", bin_str)])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .pre_exec(|| {
+                libc::setsid();
+                Ok(())
+            })
+            .spawn();
+    }
     std::process::exit(0);
 }
 
