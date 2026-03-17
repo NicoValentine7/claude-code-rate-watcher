@@ -415,6 +415,20 @@
     opacity: 1;
   }
 
+  .settings-item.link {
+    color: rgba(100, 160, 255, 0.85);
+  }
+
+  .settings-item.link:hover {
+    color: rgba(120, 180, 255, 1);
+    text-decoration: underline;
+  }
+
+  .external-icon {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+
   .settings-item.danger {
     color: rgba(255, 69, 58, 0.85);
   }
@@ -548,7 +562,7 @@
         </svg>
       </button>
       <div class="settings-menu">
-        <button class="settings-item" onclick="closeSettingsMenu(); window.ipc.postMessage('open_usage')">View Usage Dashboard</button>
+        <button class="settings-item link" onclick="window.ipc.postMessage('open_usage')">View Usage Dashboard <span class="external-icon">&#x2197;</span></button>
         <button class="settings-item" id="check-update-item" onclick="checkForUpdates()">Check for Updates</button>
         <div class="settings-sep"></div>
         <button class="settings-item" id="autolaunch-item" onclick="toggleAutoLaunch()">
