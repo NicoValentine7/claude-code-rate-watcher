@@ -32,6 +32,9 @@ pub struct ApiRateLimitData {
     pub retry_count: u32,
     /// When the next retry will happen (ISO 8601), for UI countdown
     pub retry_at: Option<String>,
+    /// Suggest user to re-login manually (after auth status didn't help)
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub suggest_relogin: bool,
 }
 
 #[derive(Deserialize)]
@@ -180,7 +183,32 @@ impl ApiPoller {
 
                 if err.is_rate_limited {
                     let current_count = self.data.lock().unwrap().retry_count;
-                    // First 429: short retry (15s). Subsequent: full backoff (300s).
+
+                    // First 429: try `claude auth status` to refresh session
+                    if current_count == 0 {
+                        eprintln!("[api] 429 received, running `claude auth status` to refresh session...");
+                        let auth_ok = std::process::Command::new("claude")
+                            .args(["auth", "status"])
+                            .stdout(std::process::Stdio::null())
+                            .stderr(std::process::Stdio::null())
+                            .status()
+                            .map(|s| s.success())
+                            .unwrap_or(false);
+                        if auth_ok {
+                            eprintln!("[api] `claude auth status` succeeded, retrying API call...");
+                            // Re-read credential and retry immediately
+                            if let Some(new_cred) = auth::get_credential() {
+                                if let Ok(result) = try_usage_api(&new_cred) {
+                                    self.store_success(result);
+                                    return;
+                                }
+                            }
+                            eprintln!("[api] Retry after `claude auth status` still failed");
+                        } else {
+                            eprintln!("[api] `claude auth status` failed");
+                        }
+                    }
+
                     let backoff = if current_count == 0 {
                         CACHE_TTL_RATE_LIMITED_FIRST
                     } else {
@@ -193,6 +221,7 @@ impl ApiPoller {
                     data.error_detail = Some(err.detail);
                     data.retry_count += 1;
                     data.retry_at = Some(retry_at.to_rfc3339());
+                    data.suggest_relogin = current_count >= 1;
                     *self.last_fetch.lock().unwrap() = Some(Instant::now());
                     *self.cache_ttl.lock().unwrap() = backoff;
                     return;
@@ -310,6 +339,7 @@ fn try_usage_api(credential: &AuthCredential) -> Result<ApiRateLimitData, ApiErr
         error_detail: None,
         retry_count: 0,
         retry_at: None,
+        suggest_relogin: false,
     })
 }
 
@@ -371,6 +401,7 @@ fn try_haiku_probe(bearer_token: &str) -> Result<ApiRateLimitData, ApiError> {
             error_detail: None,
             retry_count: 0,
             retry_at: None,
+            suggest_relogin: false,
         })
     } else {
         Err(ApiError {

@@ -143,23 +143,20 @@
     color: rgba(255, 255, 255, 0.45);
   }
 
-  .relogin-btn {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 500;
-    font-family: inherit;
-    color: #A5A4F3;
-    background: rgba(88, 86, 214, 0.15);
-    border: 0.5px solid rgba(88, 86, 214, 0.3);
-    border-radius: 6px;
-    padding: 6px 14px;
+  .relogin-hint {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
     margin-top: 10px;
-    cursor: pointer;
-    transition: background 0.15s;
+    line-height: 1.4;
   }
 
-  .relogin-btn:hover {
-    background: rgba(88, 86, 214, 0.25);
+  .relogin-hint code {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 10.5px;
+    color: #A5A4F3;
+    background: rgba(88, 86, 214, 0.15);
+    border-radius: 3px;
+    padding: 1px 5px;
   }
 
   .error-detail-toggle {
@@ -518,7 +515,7 @@
       <div class="connecting-spinner">&#x1F4E1;</div>
       <div class="connecting-text">Connecting to API...</div>
       <div class="error-message" id="error-message"></div>
-      <button class="relogin-btn" id="relogin-btn" onclick="doRelogin()" style="display:none">Re-login with Claude Code</button>
+      <div class="relogin-hint" id="relogin-hint" style="display:none">Try running <code>claude auth login</code> in your terminal</div>
       <button class="error-detail-toggle" id="error-toggle" onclick="toggleErrorDetails()" style="display:none">Show details</button>
       <div class="error-details" id="error-details"></div>
     </div>
@@ -634,19 +631,19 @@ function updateData(d) {
             errMsg.textContent = 'Auto-recovers in a few minutes';
           }
           errMsg.className = 'error-message soft';
-          // Show re-login button after multiple retries
-          var reloginBtn = document.getElementById('relogin-btn');
-          if (d.retry_count >= 2) {
-            reloginBtn.style.display = '';
+          // Show re-login hint when suggest_relogin is set
+          var reloginHint = document.getElementById('relogin-hint');
+          if (d.suggest_relogin) {
+            reloginHint.style.display = '';
           } else {
-            reloginBtn.style.display = 'none';
+            reloginHint.style.display = 'none';
           }
         } else {
           document.querySelector('.connecting-spinner').textContent = '\uD83D\uDCE1';
           document.querySelector('.connecting-text').textContent = 'Connecting to API...';
           errMsg.textContent = d.error_message;
           errMsg.className = 'error-message';
-          document.getElementById('relogin-btn').style.display = 'none';
+          document.getElementById('relogin-hint').style.display = 'none';
         }
         errMsg.style.display = '';
         if (d.error_detail || d.retry_count > 0) {
@@ -664,7 +661,7 @@ function updateData(d) {
         errMsg.style.display = 'none';
         errToggle.style.display = 'none';
         errDetails.className = 'error-details';
-        document.getElementById('relogin-btn').style.display = 'none';
+        document.getElementById('relogin-hint').style.display = 'none';
       }
       // Resize popover to fit content
       requestAnimationFrame(function() {
@@ -840,24 +837,6 @@ function applyUpdate() {
   btn.style.pointerEvents = 'none';
   text.textContent = 'Downloading and installing...';
   window.ipc.postMessage('apply_update');
-}
-
-var reloginPending = false;
-function doRelogin() {
-  if (reloginPending) return;
-  reloginPending = true;
-  var btn = document.getElementById('relogin-btn');
-  btn.textContent = 'Opening login...';
-  btn.disabled = true;
-  btn.style.opacity = '0.5';
-  window.ipc.postMessage('auth_login');
-  // Re-enable after 30s in case user needs to retry
-  setTimeout(function() {
-    reloginPending = false;
-    btn.textContent = 'Re-login with Claude Code';
-    btn.disabled = false;
-    btn.style.opacity = '';
-  }, 30000);
 }
 
 function toggleErrorDetails() {
