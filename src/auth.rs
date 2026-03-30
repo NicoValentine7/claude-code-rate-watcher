@@ -170,6 +170,26 @@ fn read_keychain_entry() -> Option<String> {
     Some(String::from_utf8(output.stdout).ok()?.trim().to_string())
 }
 
+/// Resolve the full path to the `claude` CLI binary.
+/// GUI apps on macOS don't inherit shell PATH (~/.zshrc),
+/// so we search common install locations explicitly.
+pub fn find_claude_binary() -> Option<std::path::PathBuf> {
+    let home = dirs::home_dir()?;
+    let candidates = [
+        home.join(".local/bin/claude"),
+        home.join(".claude/local/bin/claude"),
+        std::path::PathBuf::from("/opt/homebrew/bin/claude"),
+        std::path::PathBuf::from("/usr/local/bin/claude"),
+    ];
+    for path in &candidates {
+        if path.exists() {
+            return Some(path.clone());
+        }
+    }
+    // Last resort: bare "claude" — works if launched from terminal with PATH set
+    None
+}
+
 fn save_keychain_entry(value: &str) -> Result<(), String> {
     // Delete existing entry first
     let _ = Command::new("security")

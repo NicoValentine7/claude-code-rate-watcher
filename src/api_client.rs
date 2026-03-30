@@ -187,7 +187,9 @@ impl ApiPoller {
                     // First 429: try `claude auth status` to refresh session
                     if current_count == 0 {
                         eprintln!("[api] 429 received, running `claude auth status` to refresh session...");
-                        let auth_ok = std::process::Command::new("claude")
+                        let claude_bin = auth::find_claude_binary()
+                            .unwrap_or_else(|| std::path::PathBuf::from("claude"));
+                        let auth_ok = std::process::Command::new(&claude_bin)
                             .args(["auth", "status"])
                             .stdout(std::process::Stdio::null())
                             .stderr(std::process::Stdio::null())

@@ -106,6 +106,23 @@
     background: #4A48C4;
   }
 
+  .auth-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .auth-error {
+    font-size: 12px;
+    color: #FF453A;
+    margin-top: 12px;
+    line-height: 1.4;
+    display: none;
+  }
+
+  .auth-error.visible {
+    display: block;
+  }
+
   /* Connecting state */
   .connecting-state {
     display: none;
@@ -505,9 +522,10 @@
         Claude Code login is needed to fetch<br>
         your rate limit data.
       </div>
-      <button class="auth-btn" onclick="window.ipc.postMessage('auth_login')">
+      <button class="auth-btn" id="auth-login-btn" onclick="startAuthLogin()">
         Login with Claude Code
       </button>
+      <div class="auth-error" id="auth-error"></div>
     </div>
 
     <!-- Connecting state -->
@@ -598,6 +616,10 @@ function updateData(d) {
     connectingSection.className = 'connecting-state';
     usageSection.style.display = 'none';
     srcBadge.style.display = 'none';
+    // Reset login button state
+    var loginBtn = document.getElementById('auth-login-btn');
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Login with Claude Code';
     requestAnimationFrame(function() {
       var h = document.querySelector('.popover').scrollHeight;
       window.ipc.postMessage('resize:' + h);
@@ -837,6 +859,29 @@ function applyUpdate() {
   btn.style.pointerEvents = 'none';
   text.textContent = 'Downloading and installing...';
   window.ipc.postMessage('apply_update');
+}
+
+function startAuthLogin() {
+  var btn = document.getElementById('auth-login-btn');
+  var errEl = document.getElementById('auth-error');
+  btn.disabled = true;
+  btn.textContent = 'Opening browser...';
+  errEl.className = 'auth-error';
+  errEl.textContent = '';
+  window.ipc.postMessage('auth_login');
+}
+
+function showAuthError(msg) {
+  var btn = document.getElementById('auth-login-btn');
+  var errEl = document.getElementById('auth-error');
+  btn.disabled = false;
+  btn.textContent = 'Login with Claude Code';
+  errEl.textContent = msg;
+  errEl.className = 'auth-error visible';
+  requestAnimationFrame(function() {
+    var h = document.querySelector('.popover').scrollHeight;
+    window.ipc.postMessage('resize:' + h);
+  });
 }
 
 function toggleErrorDetails() {

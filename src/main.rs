@@ -26,6 +26,7 @@ enum AppEvent {
     UpdateAvailable(updater::UpdateInfo),
     UpdateNotAvailable,
     Resize(f64),
+    AuthLoginFailed(String),
 }
 
 const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
@@ -84,11 +85,33 @@ fn main() {
                 "auth_login" => {
                     let proxy_auth = proxy_ipc.clone();
                     std::thread::spawn(move || {
-                        let status = std::process::Command::new("claude")
+                        let claude_bin = auth::find_claude_binary()
+                            .unwrap_or_else(|| std::path::PathBuf::from("claude"));
+                        eprintln!("[auth] Running: {} auth login", claude_bin.display());
+                        match std::process::Command::new(&claude_bin)
                             .args(["auth", "login"])
-                            .status();
-                        if matches!(status, Ok(s) if s.success()) {
-                            let _ = proxy_auth.send_event(AppEvent::TimerTick);
+                            .output()
+                        {
+                            Ok(output) if output.status.success() => {
+                                eprintln!("[auth] Login succeeded");
+                                let _ = proxy_auth.send_event(AppEvent::TimerTick);
+                            }
+                            Ok(output) => {
+                                let stderr = String::from_utf8_lossy(&output.stderr);
+                                eprintln!("[auth] Login failed: {}", stderr);
+                                let _ = proxy_auth.send_event(AppEvent::AuthLoginFailed(
+                                    stderr.trim().to_string(),
+                                ));
+                            }
+                            Err(e) => {
+                                eprintln!("[auth] Failed to run claude: {}", e);
+                                let msg = if e.kind() == std::io::ErrorKind::NotFound {
+                                    "Claude Code CLI not found. Install it first.".to_string()
+                                } else {
+                                    format!("Failed to start login: {}", e)
+                                };
+                                let _ = proxy_auth.send_event(AppEvent::AuthLoginFailed(msg));
+                            }
                         }
                     });
                 }
@@ -283,6 +306,11 @@ fn main() {
 
             Event::UserEvent(AppEvent::UpdateNotAvailable) => {
                 let _ = webview.evaluate_script("showUpToDate()");
+            }
+
+            Event::UserEvent(AppEvent::AuthLoginFailed(ref msg)) => {
+                let escaped = msg.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
+                let _ = webview.evaluate_script(&format!("showAuthError('{}')", escaped));
             }
 
             _ => {}
