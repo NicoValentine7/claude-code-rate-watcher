@@ -84,6 +84,30 @@ ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効
    - `claude-code-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
    - `softprops/action-gh-release@v2` でリリースノート自動生成
 
+### リリースノート
+
+リリース時は `gh release create` で**詳細なリリースノートを必ず記載する**。自動生成に頼らず、以下の形式で手書きする：
+
+```markdown
+## What's Changed
+
+### New Features
+- 機能の説明（ユーザーに見える変更）
+
+### Improvements
+- パフォーマンス改善、UX改善など
+
+### Bug Fixes
+- 修正内容
+
+### Technical Details
+- 内部的な変更（開発者向け）
+```
+
+- ユーザーが「何が変わったか」を理解できる粒度で書く
+- コミットメッセージのコピペではなく、ユーザー目線で要約する
+- 変更が少ない場合はセクションを省略してよい
+
 ### リリースタイミング
 
 - **`src/` 配下の Rust コードに変更があった場合は必ずリリースする**（バージョンを上げてタグをプッシュ）
