@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew install rust)",
+      "Bash(done)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
+      "Bash(python3 -c \":*)",
+      "Bash(security find-generic-password -s \"Claude Safe Storage\" -w)",
+      "Bash(# Check the JSONL files for rate limit headers - newer Claude Code versions might log them head -5 /Users/nico/.claude/projects/-Users-nico-projects-claude-code-rate-watcher/*.jsonl)",
+      "Bash(security find-generic-password -l \"cookie.claude\" -g)",
+      "Bash(security dump-keychain)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)",
+      "Bash(find /Users/nico/projects/claude-code-rate-watcher -type f -name *.rb)",
+      "Bash(git rm:*)",
+      "Bash(curl -sL https://github.com/NicoValentine7/claude-code-rate-watcher/releases/download/v0.4.0/claude-code-rate-watcher-macos-universal.tar.gz)",
+      "Bash(shasum -a 256)",
+      "Bash(find /Users/nico/projects/claude-code-rate-watcher/target -name tao* -type d)",
+      "Bash(curl -sL https://github.com/NicoValentine7/claude-code-rate-watcher/releases/download/v0.5.0/claude-code-rate-watcher-macos-universal.tar.gz)",
+      "Bash(iconutil -c icns /tmp/AppIcon.iconset -o /Users/nico/projects/claude-code-rate-watcher/assets/AppIcon.icns)",
+      "Bash(kill 1638 87797)",
+      "Bash(pkill -f ccrw)",
+      "Bash(open \"/Applications/Claude Code Rate Watcher.app\")",
+      "Bash(rm -f ~/Library/Caches/ccrw.log)",
+      "Read(//Users/nico/Library/Caches/**)",
+      "Bash(claude auth:*)",
+      "Bash(claude setup-token:*)",
+      "Read(//Users/nico/.claude/**)"
+    ]
+  }
+}
