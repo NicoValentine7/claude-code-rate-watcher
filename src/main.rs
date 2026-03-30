@@ -5,6 +5,7 @@ mod autolaunch;
 mod file_watcher;
 mod icon;
 mod notification;
+mod statusline;
 mod tray;
 mod updater;
 
@@ -22,6 +23,7 @@ use wry::WebViewBuilder;
 
 enum AppEvent {
     FileChanged,
+    StatusLineUpdate,
     TimerTick,
     UpdateAvailable(updater::UpdateInfo),
     UpdateNotAvailable,
@@ -118,6 +120,13 @@ fn main() {
                 "toggle_launch_at_login" => {
                     let _ = autolaunch::toggle();
                 }
+                "toggle_statusline" => {
+                    if statusline::is_installed() {
+                        let _ = statusline::uninstall();
+                    } else {
+                        let _ = statusline::install();
+                    }
+                }
                 msg if msg.starts_with("resize:") => {
                     if let Ok(h) = msg[7..].parse::<f64>() {
                         let _ = proxy_ipc.send_event(AppEvent::Resize(h));
@@ -192,6 +201,8 @@ fn main() {
     }
     let autolaunch_enabled = autolaunch::is_enabled();
     let _ = webview.evaluate_script(&format!("setAutoLaunch({})", autolaunch_enabled));
+    let statusline_enabled = statusline::is_installed();
+    let _ = webview.evaluate_script(&format!("setStatusLine({})", statusline_enabled));
     let mut last_reload = Instant::now();
 
     // --- File watcher ---
@@ -200,8 +211,15 @@ fn main() {
 
     let proxy_watcher = proxy.clone();
     std::thread::spawn(move || {
-        while rx.recv().is_ok() {
-            let _ = proxy_watcher.send_event(AppEvent::FileChanged);
+        while let Ok(msg) = rx.recv() {
+            match msg {
+                file_watcher::WatcherMessage::FileChanged => {
+                    let _ = proxy_watcher.send_event(AppEvent::FileChanged);
+                }
+                file_watcher::WatcherMessage::StatusLineUpdate => {
+                    let _ = proxy_watcher.send_event(AppEvent::StatusLineUpdate);
+                }
+            }
         }
     });
 
@@ -275,6 +293,19 @@ fn main() {
                 popover_visible = false;
                 api_poller.set_active(false);
                 window.set_visible(false);
+            }
+
+            Event::UserEvent(AppEvent::StatusLineUpdate) => {
+                // StatusLine data file was updated by Claude Code
+                if let Some(data) = statusline::read_rate_data() {
+                    api_poller.set_statusline_data(data.clone());
+                    let effective_pct = data.five_hour_percent.unwrap_or(0);
+                    tray_app.update_percent(effective_pct);
+                    push_to_webview(&webview, &data);
+                    notifier.check_and_notify(effective_pct);
+                } else {
+                    api_poller.clear_statusline();
+                }
             }
 
             Event::UserEvent(AppEvent::FileChanged) => {

@@ -67,6 +67,8 @@ pub struct ApiPoller {
     cache_ttl: Arc<Mutex<Duration>>,
     /// Whether the UI is actively being viewed (popover open)
     is_active: Arc<Mutex<bool>>,
+    /// Whether statusline integration is providing fresh data
+    statusline_fresh: Arc<Mutex<bool>>,
 }
 
 impl ApiPoller {
@@ -77,6 +79,7 @@ impl ApiPoller {
             last_fetch: Arc::new(Mutex::new(None)),
             cache_ttl: Arc::new(Mutex::new(CACHE_TTL_ACTIVE)),
             is_active: Arc::new(Mutex::new(false)),
+            statusline_fresh: Arc::new(Mutex::new(false)),
         }
     }
 
@@ -84,6 +87,18 @@ impl ApiPoller {
     /// When idle, polling interval is extended to reduce API load.
     pub fn set_active(&self, active: bool) {
         *self.is_active.lock().unwrap() = active;
+    }
+
+    /// Update data from statusline (called when ccrw-rate-data.json changes).
+    pub fn set_statusline_data(&self, data: ApiRateLimitData) {
+        *self.statusline_fresh.lock().unwrap() = true;
+        self.store_success(data);
+        eprintln!("[api] Updated from statusline data");
+    }
+
+    /// Mark statusline data as stale (e.g., file too old).
+    pub fn clear_statusline(&self) {
+        *self.statusline_fresh.lock().unwrap() = false;
     }
 
     pub fn get_data(&self) -> ApiRateLimitData {
@@ -106,7 +121,13 @@ impl ApiPoller {
     }
 
     /// Fetch rate limit data from the API.
+    /// Skips API call if statusline is providing fresh data.
     pub fn poll(&self) {
+        // Skip API polling if statusline data is fresh
+        if *self.statusline_fresh.lock().unwrap() {
+            return;
+        }
+
         // Check cache TTL
         {
             let last = self.last_fetch.lock().unwrap();

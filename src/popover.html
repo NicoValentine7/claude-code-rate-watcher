@@ -591,6 +591,10 @@
           <span>Launch at Login</span>
           <span class="settings-check" id="autolaunch-check">&#x2713;</span>
         </button>
+        <button class="settings-item" id="statusline-item" onclick="toggleStatusLine()">
+          <span>StatusLine</span>
+          <span class="settings-check" id="statusline-check">&#x2713;</span>
+        </button>
         <div class="settings-sep"></div>
         <button class="settings-item danger" onclick="window.ipc.postMessage('quit')">Quit</button>
       </div>
@@ -849,6 +853,18 @@ function toggleAutoLaunch() {
   var isOn = check.classList.contains('on');
   check.className = isOn ? 'settings-check' : 'settings-check on';
   window.ipc.postMessage('toggle_launch_at_login');
+}
+
+function setStatusLine(enabled) {
+  var check = document.getElementById('statusline-check');
+  check.className = enabled ? 'settings-check on' : 'settings-check';
+}
+
+function toggleStatusLine() {
+  var check = document.getElementById('statusline-check');
+  var isOn = check.classList.contains('on');
+  check.className = isOn ? 'settings-check' : 'settings-check on';
+  window.ipc.postMessage('toggle_statusline');
 }
 
 function toggleTokenDetails() {
