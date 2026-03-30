@@ -155,22 +155,6 @@ except Exception:
     Ok(true)
 }
 
-/// Remove the helper script and restore settings.json.
-pub fn uninstall() -> Result<(), String> {
-    let script_path = helper_script_path().ok_or("Cannot find home directory")?;
-    let data_path = rate_data_path().ok_or("Cannot find home directory")?;
-
-    // Remove script and data files
-    let _ = std::fs::remove_file(&script_path);
-    let _ = std::fs::remove_file(&data_path);
-
-    // Remove statusLine from settings.json
-    unconfigure_settings()?;
-
-    eprintln!("[statusline] Helper script uninstalled");
-    Ok(())
-}
-
 /// Check if the statusline integration is currently installed.
 pub fn is_installed() -> bool {
     let settings_path = match dirs::home_dir() {
@@ -242,44 +226,3 @@ fn configure_settings(script_path: &PathBuf) -> Result<(), String> {
     Ok(())
 }
 
-/// Remove statusLine config from settings.json, restoring original if saved.
-fn unconfigure_settings() -> Result<(), String> {
-    let settings_path = dirs::home_dir()
-        .ok_or("Cannot find home directory")?
-        .join(".claude")
-        .join("settings.json");
-
-    if !settings_path.exists() {
-        return Ok(());
-    }
-
-    let content = std::fs::read_to_string(&settings_path)
-        .map_err(|e| format!("Failed to read settings.json: {}", e))?;
-    let mut settings: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse settings.json: {}", e))?;
-
-    // Restore original statusLine if we saved one
-    if let Some(original) = settings.get("_ccrw_original_statusline")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-    {
-        settings["statusLine"] = serde_json::json!({
-            "type": "command",
-            "command": original
-        });
-        if let Some(obj) = settings.as_object_mut() {
-            obj.remove("_ccrw_original_statusline");
-        }
-    } else {
-        if let Some(obj) = settings.as_object_mut() {
-            obj.remove("statusLine");
-        }
-    }
-
-    let output = serde_json::to_string_pretty(&settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    std::fs::write(&settings_path, output)
-        .map_err(|e| format!("Failed to write settings.json: {}", e))?;
-
-    Ok(())
-}

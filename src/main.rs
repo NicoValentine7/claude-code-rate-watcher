@@ -120,13 +120,6 @@ fn main() {
                 "toggle_launch_at_login" => {
                     let _ = autolaunch::toggle();
                 }
-                "toggle_statusline" => {
-                    if statusline::is_installed() {
-                        let _ = statusline::uninstall();
-                    } else {
-                        let _ = statusline::install();
-                    }
-                }
                 msg if msg.starts_with("resize:") => {
                     if let Ok(h) = msg[7..].parse::<f64>() {
                         let _ = proxy_ipc.send_event(AppEvent::Resize(h));
@@ -201,8 +194,12 @@ fn main() {
     }
     let autolaunch_enabled = autolaunch::is_enabled();
     let _ = webview.evaluate_script(&format!("setAutoLaunch({})", autolaunch_enabled));
-    let statusline_enabled = statusline::is_installed();
-    let _ = webview.evaluate_script(&format!("setStatusLine({})", statusline_enabled));
+    // Always install statusline integration (no toggle needed)
+    if !statusline::is_installed() {
+        if let Err(e) = statusline::install() {
+            eprintln!("[statusline] Auto-install failed: {}", e);
+        }
+    }
     let mut last_reload = Instant::now();
 
     // --- File watcher ---
