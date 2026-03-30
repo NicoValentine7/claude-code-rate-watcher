@@ -160,10 +160,16 @@
     color: rgba(255, 255, 255, 0.45);
   }
 
+  .relogin-btn {
+    margin-top: 14px;
+    padding: 8px 24px;
+    font-size: 12.5px;
+  }
+
   .relogin-hint {
     font-size: 11px;
     color: rgba(255, 255, 255, 0.45);
-    margin-top: 10px;
+    margin-top: 8px;
     line-height: 1.4;
   }
 
@@ -533,7 +539,8 @@
       <div class="connecting-spinner">&#x1F4E1;</div>
       <div class="connecting-text">Connecting to API...</div>
       <div class="error-message" id="error-message"></div>
-      <div class="relogin-hint" id="relogin-hint" style="display:none">Try running <code>claude auth login</code> in your terminal</div>
+      <button class="auth-btn relogin-btn" id="relogin-btn" style="display:none" onclick="startRelogin()">Re-login</button>
+      <div class="relogin-hint" id="relogin-hint" style="display:none">or run <code>claude auth login</code> in terminal</div>
       <button class="error-detail-toggle" id="error-toggle" onclick="toggleErrorDetails()" style="display:none">Show details</button>
       <div class="error-details" id="error-details"></div>
     </div>
@@ -653,11 +660,14 @@ function updateData(d) {
             errMsg.textContent = 'Auto-recovers in a few minutes';
           }
           errMsg.className = 'error-message soft';
-          // Show re-login hint when suggest_relogin is set
+          // Show re-login button + hint when suggest_relogin is set
+          var reloginBtn = document.getElementById('relogin-btn');
           var reloginHint = document.getElementById('relogin-hint');
           if (d.suggest_relogin) {
+            reloginBtn.style.display = '';
             reloginHint.style.display = '';
           } else {
+            reloginBtn.style.display = 'none';
             reloginHint.style.display = 'none';
           }
         } else {
@@ -665,6 +675,7 @@ function updateData(d) {
           document.querySelector('.connecting-text').textContent = 'Connecting to API...';
           errMsg.textContent = d.error_message;
           errMsg.className = 'error-message';
+          document.getElementById('relogin-btn').style.display = 'none';
           document.getElementById('relogin-hint').style.display = 'none';
         }
         errMsg.style.display = '';
@@ -683,6 +694,7 @@ function updateData(d) {
         errMsg.style.display = 'none';
         errToggle.style.display = 'none';
         errDetails.className = 'error-details';
+        document.getElementById('relogin-btn').style.display = 'none';
         document.getElementById('relogin-hint').style.display = 'none';
       }
       // Resize popover to fit content
@@ -882,6 +894,18 @@ function showAuthError(msg) {
     var h = document.querySelector('.popover').scrollHeight;
     window.ipc.postMessage('resize:' + h);
   });
+}
+
+function startRelogin() {
+  var btn = document.getElementById('relogin-btn');
+  btn.disabled = true;
+  btn.textContent = 'Opening browser...';
+  window.ipc.postMessage('auth_login');
+  // Re-enable after a few seconds in case it fails
+  setTimeout(function() {
+    btn.disabled = false;
+    btn.textContent = 'Re-login';
+  }, 5000);
 }
 
 function toggleErrorDetails() {

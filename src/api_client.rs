@@ -223,7 +223,7 @@ impl ApiPoller {
                     data.error_detail = Some(err.detail);
                     data.retry_count += 1;
                     data.retry_at = Some(retry_at.to_rfc3339());
-                    data.suggest_relogin = current_count >= 1;
+                    data.suggest_relogin = true;
                     *self.last_fetch.lock().unwrap() = Some(Instant::now());
                     *self.cache_ttl.lock().unwrap() = backoff;
                     return;
