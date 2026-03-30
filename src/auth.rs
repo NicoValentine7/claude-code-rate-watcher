@@ -2,7 +2,7 @@ use std::process::Command;
 use std::time::Duration;
 
 const OAUTH_TOKEN_URL: &str = "https://console.anthropic.com/v1/oauth/token";
-const OAUTH_CLIENT_ID: &str = "5d15e876-9096-4ddf-b647-3fdb21aed944";
+const OAUTH_CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 
 /// Authentication credentials for Anthropic API.
 pub enum AuthCredential {
