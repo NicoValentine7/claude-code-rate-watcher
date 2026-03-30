@@ -5,9 +5,9 @@ use std::time::{Duration, Instant};
 
 const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const MESSAGES_API_URL: &str = "https://api.anthropic.com/v1/messages";
-const CACHE_TTL: Duration = Duration::from_secs(60);
-const CACHE_TTL_RATE_LIMITED: Duration = Duration::from_secs(300);
-const CACHE_TTL_RATE_LIMITED_FIRST: Duration = Duration::from_secs(15);
+const CACHE_TTL: Duration = Duration::from_secs(90);
+/// Backoff durations for consecutive 429 errors: 15s, 30s, 60s, 120s, 300s
+const RATE_LIMIT_BACKOFFS: [u64; 5] = [15, 30, 60, 120, 300];
 
 /// Rate limit data from the API.
 #[derive(Debug, Clone, Default, Serialize)]
@@ -211,11 +211,8 @@ impl ApiPoller {
                         }
                     }
 
-                    let backoff = if current_count == 0 {
-                        CACHE_TTL_RATE_LIMITED_FIRST
-                    } else {
-                        CACHE_TTL_RATE_LIMITED
-                    };
+                    let idx = (current_count as usize).min(RATE_LIMIT_BACKOFFS.len() - 1);
+                    let backoff = Duration::from_secs(RATE_LIMIT_BACKOFFS[idx]);
                     let retry_at = chrono::Utc::now() + chrono::Duration::seconds(backoff.as_secs() as i64);
                     let mut data = self.data.lock().unwrap();
                     data.is_live = false;
