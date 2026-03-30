@@ -5,7 +5,8 @@ use std::time::{Duration, Instant};
 
 const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const MESSAGES_API_URL: &str = "https://api.anthropic.com/v1/messages";
-const CACHE_TTL: Duration = Duration::from_secs(90);
+const CACHE_TTL_ACTIVE: Duration = Duration::from_secs(90);
+const CACHE_TTL_IDLE: Duration = Duration::from_secs(300);
 /// Backoff durations for consecutive 429 errors: 15s, 30s, 60s, 120s, 300s
 const RATE_LIMIT_BACKOFFS: [u64; 5] = [15, 30, 60, 120, 300];
 
@@ -64,6 +65,8 @@ pub struct ApiPoller {
     last_good: Arc<Mutex<Option<ApiRateLimitData>>>,
     last_fetch: Arc<Mutex<Option<Instant>>>,
     cache_ttl: Arc<Mutex<Duration>>,
+    /// Whether the UI is actively being viewed (popover open)
+    is_active: Arc<Mutex<bool>>,
 }
 
 impl ApiPoller {
@@ -72,8 +75,15 @@ impl ApiPoller {
             data: Arc::new(Mutex::new(ApiRateLimitData::default())),
             last_good: Arc::new(Mutex::new(None)),
             last_fetch: Arc::new(Mutex::new(None)),
-            cache_ttl: Arc::new(Mutex::new(CACHE_TTL)),
+            cache_ttl: Arc::new(Mutex::new(CACHE_TTL_ACTIVE)),
+            is_active: Arc::new(Mutex::new(false)),
         }
+    }
+
+    /// Set whether the popover is actively visible.
+    /// When idle, polling interval is extended to reduce API load.
+    pub fn set_active(&self, active: bool) {
+        *self.is_active.lock().unwrap() = active;
     }
 
     pub fn get_data(&self) -> ApiRateLimitData {
@@ -154,7 +164,12 @@ impl ApiPoller {
         *self.last_good.lock().unwrap() = Some(result.clone());
         *self.data.lock().unwrap() = result;
         *self.last_fetch.lock().unwrap() = Some(Instant::now());
-        *self.cache_ttl.lock().unwrap() = CACHE_TTL;
+        let active = *self.is_active.lock().unwrap();
+        *self.cache_ttl.lock().unwrap() = if active {
+            CACHE_TTL_ACTIVE
+        } else {
+            CACHE_TTL_IDLE
+        };
     }
 
     fn try_fetch(&self, credential: &AuthCredential) {

@@ -247,6 +247,7 @@ fn main() {
         }) = tray_channel.try_recv()
         {
             popover_visible = !popover_visible;
+            api_poller.set_active(popover_visible);
             if popover_visible {
                 // Position below the tray icon, centered horizontally
                 let x = rect.position.x + (rect.size.width as f64 / 2.0) - (POPOVER_WIDTH / 2.0);
@@ -254,6 +255,12 @@ fn main() {
                 window.set_outer_position(PhysicalPosition::new(x, y));
                 window.set_visible(true);
                 window.set_focus();
+                // Force immediate refresh when opening popover
+                api_poller.poll();
+                let api_data = api_poller.get_data();
+                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
+                tray_app.update_percent(effective_pct);
+                push_to_webview(&webview, &api_data);
             } else {
                 window.set_visible(false);
             }
@@ -266,6 +273,7 @@ fn main() {
                 ..
             } => {
                 popover_visible = false;
+                api_poller.set_active(false);
                 window.set_visible(false);
             }
 
