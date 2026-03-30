@@ -347,7 +347,7 @@ dependencies = [
 
 [[package]]
 name = "claude-code-rate-watcher"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "chrono",
  "dirs",
