@@ -454,6 +454,41 @@
   }
 
   /* Update banner */
+  /* Refresh button */
+  .refresh-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 2px 4px;
+    line-height: 1;
+    transition: color 0.15s, opacity 0.15s;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  .refresh-btn:hover {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .refresh-btn:active {
+    color: #fff;
+  }
+
+  .refresh-btn.cooldown {
+    opacity: 0.25;
+    cursor: default;
+  }
+
+  .refresh-btn.spinning {
+    animation: spin 0.6s linear;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
   .version-label {
     font-size: 11px;
     color: rgba(255, 255, 255, 0.25);
@@ -511,6 +546,7 @@
       <span class="badge" id="plan-badge">Max</span>
       <span class="badge live" id="source-badge">Live</span>
       <span style="flex:1"></span>
+      <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="Refresh">&#x21BB;</button>
       <span class="version-label" id="version-label"></span>
     </div>
 
@@ -937,6 +973,52 @@ function startRetryCountdown(isoStr, el) {
   }
   update();
   _retryTimer = setInterval(update, 1000);
+}
+
+var _refreshCooldownTimer = null;
+
+function manualRefresh() {
+  var btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  setTimeout(function() { btn.classList.remove('spinning'); }, 600);
+  window.ipc.postMessage('manual_refresh');
+}
+
+function setRefreshResult(success, cooldownSecs) {
+  var btn = document.getElementById('refresh-btn');
+  if (success) {
+    btn.title = 'Refresh';
+    btn.classList.remove('cooldown');
+    // Start cooldown display after successful refresh
+    startRefreshCooldown(30);
+  } else {
+    startRefreshCooldown(cooldownSecs || 0);
+  }
+}
+
+function startRefreshCooldown(secs) {
+  var btn = document.getElementById('refresh-btn');
+  if (_refreshCooldownTimer) clearInterval(_refreshCooldownTimer);
+  if (secs <= 0) {
+    btn.title = 'Refresh';
+    btn.classList.remove('cooldown');
+    return;
+  }
+  btn.classList.add('cooldown');
+  var remaining = secs;
+  function tick() {
+    if (remaining <= 0) {
+      btn.title = 'Refresh';
+      btn.classList.remove('cooldown');
+      clearInterval(_refreshCooldownTimer);
+      _refreshCooldownTimer = null;
+      return;
+    }
+    btn.title = 'Refresh (' + remaining + 's)';
+    remaining--;
+  }
+  tick();
+  _refreshCooldownTimer = setInterval(tick, 1000);
 }
 
 function formatResetTime(isoStr) {

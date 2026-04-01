@@ -7,6 +7,7 @@ const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const MESSAGES_API_URL: &str = "https://api.anthropic.com/v1/messages";
 const CACHE_TTL_ACTIVE: Duration = Duration::from_secs(90);
 const CACHE_TTL_IDLE: Duration = Duration::from_secs(300);
+const MANUAL_REFRESH_COOLDOWN: Duration = Duration::from_secs(30);
 /// Backoff durations for consecutive 429 errors: 15s, 30s, 60s, 120s, 300s
 const RATE_LIMIT_BACKOFFS: [u64; 5] = [15, 30, 60, 120, 300];
 
@@ -69,6 +70,8 @@ pub struct ApiPoller {
     is_active: Arc<Mutex<bool>>,
     /// Whether statusline integration is providing fresh data
     statusline_fresh: Arc<Mutex<bool>>,
+    /// Last manual refresh timestamp (for cooldown throttling)
+    last_manual_refresh: Arc<Mutex<Option<Instant>>>,
 }
 
 impl ApiPoller {
@@ -80,6 +83,7 @@ impl ApiPoller {
             cache_ttl: Arc::new(Mutex::new(CACHE_TTL_ACTIVE)),
             is_active: Arc::new(Mutex::new(false)),
             statusline_fresh: Arc::new(Mutex::new(false)),
+            last_manual_refresh: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -118,6 +122,47 @@ impl ApiPoller {
             return stale;
         }
         data
+    }
+
+    /// Force a refresh, bypassing cache TTL and statusline.
+    /// Returns `true` if the API was actually called, `false` if cooldown is active.
+    pub fn force_poll(&self) -> bool {
+        {
+            let last = self.last_manual_refresh.lock().unwrap();
+            if let Some(t) = *last {
+                if t.elapsed() < MANUAL_REFRESH_COOLDOWN {
+                    return false;
+                }
+            }
+        }
+
+        *self.last_manual_refresh.lock().unwrap() = Some(Instant::now());
+
+        // Temporarily bypass statusline and cache
+        let was_fresh = *self.statusline_fresh.lock().unwrap();
+        *self.statusline_fresh.lock().unwrap() = false;
+        *self.last_fetch.lock().unwrap() = None;
+
+        self.poll();
+
+        // Restore statusline_fresh if it was set
+        if was_fresh {
+            *self.statusline_fresh.lock().unwrap() = true;
+        }
+
+        true
+    }
+
+    /// Returns remaining cooldown seconds for manual refresh, or `None` if ready.
+    pub fn get_cooldown_remaining(&self) -> Option<u64> {
+        let last = self.last_manual_refresh.lock().unwrap();
+        if let Some(t) = *last {
+            let elapsed = t.elapsed();
+            if elapsed < MANUAL_REFRESH_COOLDOWN {
+                return Some((MANUAL_REFRESH_COOLDOWN - elapsed).as_secs());
+            }
+        }
+        None
     }
 
     /// Fetch rate limit data from the API.

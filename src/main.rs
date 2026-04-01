@@ -29,6 +29,7 @@ enum AppEvent {
     UpdateNotAvailable,
     Resize(f64),
     AuthLoginFailed(String),
+    ManualRefresh,
 }
 
 const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
@@ -124,6 +125,9 @@ fn main() {
                     if let Ok(h) = msg[7..].parse::<f64>() {
                         let _ = proxy_ipc.send_event(AppEvent::Resize(h));
                     }
+                }
+                "manual_refresh" => {
+                    let _ = proxy_ipc.send_event(AppEvent::ManualRefresh);
                 }
                 "check_update" => {
                     let updater_check = updater_ipc.clone();
@@ -325,6 +329,22 @@ fn main() {
                 let effective_pct = api_data.five_hour_percent.unwrap_or(0);
                 tray_app.update_percent(effective_pct);
                 push_to_webview(&webview, &api_data);
+            }
+
+            Event::UserEvent(AppEvent::ManualRefresh) => {
+                if api_poller.force_poll() {
+                    let api_data = api_poller.get_data();
+                    let effective_pct = api_data.five_hour_percent.unwrap_or(0);
+                    tray_app.update_percent(effective_pct);
+                    push_to_webview(&webview, &api_data);
+                    let _ = webview.evaluate_script("setRefreshResult(true)");
+                } else {
+                    let remaining = api_poller.get_cooldown_remaining().unwrap_or(0);
+                    let _ = webview.evaluate_script(&format!(
+                        "setRefreshResult(false, {})",
+                        remaining
+                    ));
+                }
             }
 
             Event::UserEvent(AppEvent::Resize(height)) => {
