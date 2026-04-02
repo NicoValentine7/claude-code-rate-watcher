@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Code Rate Watcher UI Concepts</title>
+  <link rel="stylesheet" href="./ui-concepts.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="intro">
+      <p class="eyebrow">Claude Code Rate Watcher</p>
+      <h1>Popover UI Mockups</h1>
+      <p class="lede">
+        監視ツールとしての読みやすさを優先しつつ、macOS の軽さと品のよさを残す方向で 3 案に分けました。
+        どれも 5h / 7d、認証状態、更新通知、手動更新、ログイン時起動の要件は維持しています。
+      </p>
+    </section>
+
+    <section class="concept-grid">
+      <article class="concept-card">
+        <div class="concept-copy">
+          <p class="concept-kicker">Concept A</p>
+          <h2>Command Center</h2>
+          <p>
+            主指標を最上段で強く見せる実用寄りの案です。5時間枠を一目で読めるようにして、
+            7日枠やトークン内訳は一段下げています。
+          </p>
+          <ul>
+            <li>最初の 2 秒で「今どれくらい危ないか」がわかる</li>
+            <li>カード数を減らして視線移動を短くする</li>
+            <li>本実装に落とし込みやすい</li>
+          </ul>
+        </div>
+
+        <section class="mockup mockup-command">
+          <div class="mac-topbar">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="mockup-header">
+            <div>
+              <p class="product-name">Claude Code Rate Watcher</p>
+              <p class="subtle">Live API · 17:42 更新</p>
+            </div>
+            <span class="state-pill live">LIVE</span>
+          </div>
+
+          <section class="hero-panel">
+            <div>
+              <p class="section-label">5h window</p>
+              <p class="hero-value">68<span>%</span></p>
+              <p class="hero-caption">次のリセットまで 2h 14m</p>
+            </div>
+            <div class="hero-rail">
+              <div class="hero-bar">
+                <span style="width: 68%"></span>
+              </div>
+              <dl>
+                <div>
+                  <dt>messages</dt>
+                  <dd>42</dd>
+                </div>
+                <div>
+                  <dt>weighted</dt>
+                  <dd>17.1M</dd>
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="metric-strip">
+            <div>
+              <p>7d window</p>
+              <strong>41%</strong>
+              <span>98.4M weighted</span>
+            </div>
+            <div>
+              <p>statusline</p>
+              <strong>Fresh</strong>
+              <span>local override active</span>
+            </div>
+          </section>
+
+          <section class="detail-panel">
+            <div class="detail-row">
+              <span>Input</span>
+              <strong>2.8M</strong>
+            </div>
+            <div class="detail-row">
+              <span>Output ×5</span>
+              <strong>11.2M</strong>
+            </div>
+            <div class="detail-row">
+              <span>Cache read ÷10</span>
+              <strong>0.3M</strong>
+            </div>
+          </section>
+
+          <section class="action-row">
+            <button class="primary">Manual Refresh</button>
+            <button>Usage Page</button>
+            <button>Updates</button>
+          </section>
+
+          <section class="footer-row">
+            <span>Launch at login</span>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span></span>
+            </label>
+          </section>
+        </section>
+      </article>
+
+      <article class="concept-card">
+        <div class="concept-copy">
+          <p class="concept-kicker">Concept B</p>
+          <h2>Native Glass</h2>
+          <p>
+            透明感を使いながらも、情報は重ねすぎずに整理した案です。普段ずっとメニューバーにいる
+            小さなユーティリティとしての気持ちよさを重視しています。
+          </p>
+          <ul>
+            <li>macOS の材質感に寄せた静かな見た目</li>
+            <li>補助情報を右カラムに逃がして中央を軽く保つ</li>
+            <li>将来的な light / dark 両対応を想像しやすい</li>
+          </ul>
+        </div>
+
+        <section class="mockup mockup-glass">
+          <div class="glass-orb orb-a"></div>
+          <div class="glass-orb orb-b"></div>
+          <div class="mockup-header">
+            <div>
+              <p class="product-name">Claude Code</p>
+              <p class="subtle">Rate monitor · local + live</p>
+            </div>
+            <span class="state-pill soft">steady</span>
+          </div>
+
+          <section class="glass-grid">
+            <div class="glass-main">
+              <p class="section-label">Now</p>
+              <p class="hero-value">64<span>%</span></p>
+              <p class="hero-caption">余力あり。警告しきい値まで 11%</p>
+              <div class="glass-meter">
+                <span style="width: 64%"></span>
+              </div>
+            </div>
+            <div class="glass-side">
+              <div>
+                <p>7d</p>
+                <strong>39%</strong>
+              </div>
+              <div>
+                <p>reset</p>
+                <strong>02:14</strong>
+              </div>
+              <div>
+                <p>alert</p>
+                <strong>75%</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="glass-list">
+            <div>
+              <span>Auth</span>
+              <strong>Connected</strong>
+            </div>
+            <div>
+              <span>Source</span>
+              <strong>Claude statusline</strong>
+            </div>
+            <div>
+              <span>Refresh</span>
+              <strong>in 12s</strong>
+            </div>
+          </section>
+
+          <section class="glass-banner">
+            <div>
+              <p class="section-label">Update ready</p>
+              <strong>v0.9.1 available</strong>
+            </div>
+            <button class="primary">Install</button>
+          </section>
+
+          <section class="action-row split">
+            <button class="primary">Refresh</button>
+            <button>Open Usage</button>
+          </section>
+        </section>
+      </article>
+
+      <article class="concept-card">
+        <div class="concept-copy">
+          <p class="concept-kicker">Concept C</p>
+          <h2>Alert Radar</h2>
+          <p>
+            レート制限監視らしい緊張感を強めた案です。しきい値と残り余力を大胆に出して、
+            認証や更新の異常も同じトーンで扱います。
+          </p>
+          <ul>
+            <li>危険域に入ったときの見落としを減らしやすい</li>
+            <li>通知ロジックとの整合が取りやすい</li>
+            <li>プロダクトの個性は強いが、少し尖る</li>
+          </ul>
+        </div>
+
+        <section class="mockup mockup-radar">
+          <div class="mockup-header">
+            <div>
+              <p class="product-name">Claude Code Rate Watcher</p>
+              <p class="subtle">Monitor mode · threshold aware</p>
+            </div>
+            <span class="state-pill warning">watch</span>
+          </div>
+
+          <section class="radar-hero">
+            <div class="radar-ring">
+              <div class="radar-center">
+                <strong>82%</strong>
+                <span>5h usage</span>
+              </div>
+            </div>
+            <div class="radar-copy">
+              <p class="section-label">Risk</p>
+              <h3>Warning zone</h3>
+              <p>75% を超過。次の生成を続ける前に、余力とリセット時刻を確認したい状態です。</p>
+            </div>
+          </section>
+
+          <section class="thresholds">
+            <div>
+              <span>warning</span>
+              <strong>75%</strong>
+            </div>
+            <div>
+              <span>critical</span>
+              <strong>90%</strong>
+            </div>
+            <div>
+              <span>reset</span>
+              <strong>1h 06m</strong>
+            </div>
+          </section>
+
+          <section class="alert-stack">
+            <div class="alert-card warm">
+              <p>Auth</p>
+              <strong>Healthy</strong>
+              <span>Bearer token valid</span>
+            </div>
+            <div class="alert-card neutral">
+              <p>7d trend</p>
+              <strong>58%</strong>
+              <span>still within plan</span>
+            </div>
+            <div class="alert-card danger">
+              <p>Next action</p>
+              <strong>Refresh locked</strong>
+              <span>available in 18s</span>
+            </div>
+          </section>
+
+          <section class="action-row">
+            <button class="primary">Reconnect Claude</button>
+            <button>Usage Page</button>
+          </section>
+        </section>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
