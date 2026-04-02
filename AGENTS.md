@@ -1,8 +1,8 @@
-# CLAUDE.md
+# AGENTS.md
 
 ## Project Overview
 
-Claude Code Rate Watcher - macOS メニューバーアプリ。Claude Code の API レート制限使用量をリアルタイム監視する。
+Codex Rate Watcher - macOS メニューバーアプリ。Codex の API レート制限使用量をリアルタイム監視する。
 
 ## Tech Stack
 
@@ -19,7 +19,7 @@ main.rs              - イベントループ、ウィンドウ管理、IPC
 ├── api_client.rs    - Anthropic API ポーリング（OAuth + Haiku probe）
 ├── auth.rs          - macOS Keychain からの認証情報取得
 ├── autolaunch.rs    - ログイン時自動起動（LaunchAgent plist 管理）
-├── file_watcher.rs  - ~/.claude/projects/ の JSONL ファイル変更検知
+├── file_watcher.rs  - ~/.Codex/projects/ の JSONL ファイル変更検知
 ├── session_parser.rs - JSONL セッションファイルのパース、トークン使用量抽出
 ├── usage_tracker.rs  - 使用量計算（5h / 168h ウィンドウ）、閾値判定
 ├── updater.rs       - GitHub Releases ベースの自動アップデート
@@ -62,9 +62,9 @@ Worktree で作業する場合：
 2. `CCRW_DEBUG_LABEL` 環境変数でメニューバーにデバッグ名を表示して起動
 
 ```bash
-mkdir -p /Users/nico/projects/claude-code-rate-watcher/builds
-cp target/release/ccrw /Users/nico/projects/claude-code-rate-watcher/builds/ccrw-<変更内容の要約>
-CCRW_DEBUG_LABEL="<変更内容>" /Users/nico/projects/claude-code-rate-watcher/builds/ccrw-<名前> &
+mkdir -p /Users/nico/projects/Codex-rate-watcher/builds
+cp target/release/ccrw /Users/nico/projects/Codex-rate-watcher/builds/ccrw-<変更内容の要約>
+CCRW_DEBUG_LABEL="<変更内容>" /Users/nico/projects/Codex-rate-watcher/builds/ccrw-<名前> &
 ```
 
 例: `CCRW_DEBUG_LABEL="inline-menu" builds/ccrw-inline-settings-menu &`
@@ -73,7 +73,7 @@ CCRW_DEBUG_LABEL="<変更内容>" /Users/nico/projects/claude-code-rate-watcher/
 ## Install
 
 ```bash
-brew install NicoValentine7/tap/claude-code-rate-watcher
+brew install NicoValentine7/tap/Codex-rate-watcher
 ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効化される）
 ```
 
@@ -89,7 +89,7 @@ ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効
 4. GitHub Actions (`.github/workflows/release.yml`) が自動実行:
    - aarch64 + x86_64 のクロスビルド
    - `lipo` でユニバーサルバイナリ（`ccrw`）作成
-   - `claude-code-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
+   - `Codex-rate-watcher-macos-universal.tar.gz` として GitHub Releases に公開
    - `softprops/action-gh-release@v2` でリリースノート自動生成
 
 ### リリースノート
@@ -130,10 +130,10 @@ ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効
 
 ### GitHub Pages
 
-- **URL**: https://nicovalentine7.github.io/claude-code-rate-watcher/
+- **URL**: https://nicovalentine7.github.io/Codex-rate-watcher/
 - **ソース**: `docs/` ディレクトリ（GitHub Pages の設定で `/docs` を指定）
 - `docs/index.html` — リリースページ（EN/JA 言語切替対応）
-- ダウンロードリンクは `https://github.com/NicoValentine7/claude-code-rate-watcher/releases/latest` を指す → 常に最新リリースが配布される
+- ダウンロードリンクは `https://github.com/NicoValentine7/Codex-rate-watcher/releases/latest` を指す → 常に最新リリースが配布される
 - `docs/` 内のファイルを変更して main に push すると、自動的に Pages がデプロイされる
 
 ### Auto-Updater
@@ -146,8 +146,8 @@ ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効
 ### Homebrew Tap
 
 - リポジトリ: `NicoValentine7/homebrew-tap`
-- Formula: `Formula/claude-code-rate-watcher.rb`
-- インストール: `brew install NicoValentine7/tap/claude-code-rate-watcher`
+- Formula: `Formula/Codex-rate-watcher.rb`
+- インストール: `brew install NicoValentine7/tap/Codex-rate-watcher`
 - コマンド名: `ccrw`
 - **リリース時**: GitHub Actions が自動で sha256 を計算し Formula を更新・push する（手動作業不要）
 - Homebrew 経由のインストールでは auto-update が無効化される（`brew upgrade` を使用）
@@ -155,12 +155,12 @@ ccrw  # 起動（初回起動時にログイン時自動起動が自動で有効
 ### インストール先
 
 - Homebrew: `/opt/homebrew/bin/ccrw`（Apple Silicon）/ `/usr/local/bin/ccrw`（Intel）
-- LaunchAgent plist: `~/Library/LaunchAgents/com.claude-code-rate-watcher.plist`
+- LaunchAgent plist: `~/Library/LaunchAgents/com.Codex-rate-watcher.plist`
 - ログイン時自動起動: 初回起動時にデフォルトで有効化（popover のトグルで OFF 可能）
 
 ## Data Source
 
-`~/.claude/projects/**/*.jsonl` — Claude Code のセッションジャーナルファイル
+`~/.Codex/projects/**/*.jsonl` — Codex のセッションジャーナルファイル
 
 ## UI Colors (Apple HIG)
 
