@@ -57,7 +57,7 @@ struct PopoverRootView: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Codex Rate Watcher")
+                Text("Claude Code Rate Watcher")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                 Text(state.diagnostics.sourceDescription)
