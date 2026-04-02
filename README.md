@@ -35,15 +35,17 @@ That's it! On first launch, **Launch at Login** is automatically enabled so it s
 ```bash
 git clone https://github.com/NicoValentine7/claude-code-rate-watcher.git
 cd claude-code-rate-watcher
-cargo build --release
-# Binary is at target/release/ccrw
+swift build -c release
+# Binary is at .build/.../release/ccrw
+./scripts/build_app.sh release
+# App bundle is at dist/Claude Code Rate Watcher.app
 ```
 
 ## Requirements
 
 - **macOS** (Apple Silicon and Intel supported)
 - **Claude Code** must be installed — the app reads session data from `~/.claude/projects/`
-- **Rust toolchain** (only if building from source)
+- **Swift 6 toolchain** (only if building from source)
 
 ## How It Works
 
@@ -63,7 +65,7 @@ The app watches `~/.claude/projects/**/*.jsonl` session files for changes and ca
 | 5 hours | 25,000,000 weighted tokens |
 | Weekly (168h) | 225,000,000 weighted tokens |
 
-> These are heuristic estimates for the Max plan. You can adjust the constants in `src/usage_tracker.rs` to match your plan.
+> These are heuristic estimates for the Max plan. You can adjust the constants in `Sources/CCRWCore/UsageCalculator.swift` to match your plan.
 
 ## Updating
 
@@ -73,7 +75,7 @@ If installed via Homebrew:
 brew upgrade NicoValentine7/tap/claude-code-rate-watcher
 ```
 
-If installed from source or direct download, the app checks for updates automatically and shows an update banner in the popover when a new version is available.
+If installed from source or direct download, the Swift app is wired for Sparkle-based updates. Signed release packaging should provide `CCRW_SPARKLE_FEED_URL` and `CCRW_SPARKLE_PUBLIC_KEY`.
 
 ## Uninstall
 
@@ -85,11 +87,10 @@ brew uninstall claude-code-rate-watcher
 
 ### Manual cleanup
 
-Remove the Launch Agent (if auto-start was enabled):
+Remove the app and, if needed, disable it in macOS Login Items:
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.claude-code-rate-watcher.plist
-rm ~/Library/LaunchAgents/com.claude-code-rate-watcher.plist
+rm -rf "dist/Claude Code Rate Watcher.app"
 ```
 
 ## Contributing

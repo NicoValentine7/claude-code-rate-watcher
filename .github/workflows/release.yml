@@ -14,51 +14,32 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
-      - name: Build aarch64
-        run: cargo build --release --target aarch64-apple-darwin
+      - name: Build arm64 binary
+        run: swift build -c release --triple arm64-apple-macosx13.0
 
-      - name: Build x86_64
-        run: cargo build --release --target x86_64-apple-darwin
+      - name: Build x86_64 binary
+        run: swift build -c release --triple x86_64-apple-macosx13.0
 
       - name: Create universal binary
         run: |
           lipo -create \
-            target/aarch64-apple-darwin/release/ccrw \
-            target/x86_64-apple-darwin/release/ccrw \
-            -output ccrw
+            .build/arm64-apple-macosx/release/ccrw \
+            .build/x86_64-apple-macosx/release/ccrw \
+            -output .build/universal-ccrw
 
-      - name: Package tarball
+      - name: Build app bundle
         run: |
-          tar czf claude-code-rate-watcher-macos-universal.tar.gz ccrw
+          chmod +x scripts/build_app.sh
+          APP_PATH="$(./scripts/build_app.sh release)"
+          cp .build/universal-ccrw "${APP_PATH}/Contents/MacOS/ccrw"
+          tar czf claude-code-rate-watcher-macos-app.tar.gz -C dist "Claude Code Rate Watcher.app"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            claude-code-rate-watcher-macos-universal.tar.gz
-          generate_release_notes: true
-
-      - name: Update Homebrew Formula
-        env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          SHA256=$(shasum -a 256 claude-code-rate-watcher-macos-universal.tar.gz | awk '{print $1}')
-
-          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/NicoValentine7/homebrew-tap.git /tmp/homebrew-tap
-          cd /tmp/homebrew-tap
-
-          sed -i '' "s|url \".*\"|url \"https://github.com/NicoValentine7/claude-code-rate-watcher/releases/download/v${VERSION}/claude-code-rate-watcher-macos-universal.tar.gz\"|" Formula/claude-code-rate-watcher.rb
-          sed -i '' "s|sha256 \".*\"|sha256 \"${SHA256}\"|" Formula/claude-code-rate-watcher.rb
-          sed -i '' "s|version \".*\"|version \"${VERSION}\"|" Formula/claude-code-rate-watcher.rb
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/claude-code-rate-watcher.rb
-          git commit -m "feat: v${VERSION} に自動更新"
-          git push
+            claude-code-rate-watcher-macos-app.tar.gz
+          generate_release_notes: false
