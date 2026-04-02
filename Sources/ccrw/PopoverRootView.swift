@@ -20,7 +20,6 @@ struct PopoverRootView: View {
                         authCard
                     }
                     tokenBreakdown
-                    actions
                     diagnostics
                 }
                 .padding(16)
@@ -208,50 +207,6 @@ struct PopoverRootView: View {
         .background(calmPanel(fillOpacity: 0.048, strokeOpacity: 0.045))
     }
 
-    private var actions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Button(refreshButtonTitle) {
-                    state.manualRefresh()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.white.opacity(0.92))
-                .foregroundStyle(Color.black.opacity(0.85))
-                .disabled(state.diagnostics.manualRefreshCooldownRemaining > 0 || state.isRefreshing)
-
-                Button("Usage Page") {
-                    state.openUsagePage()
-                }
-                .buttonStyle(.bordered)
-                .tint(.white.opacity(0.24))
-            }
-
-            HStack {
-                Button("Check Updates") {
-                    state.checkForUpdates()
-                }
-                .buttonStyle(.plain)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.58))
-
-                Spacer()
-            }
-
-            Toggle(isOn: Binding(
-                get: { state.launchAtLoginEnabled },
-                set: { state.setLaunchAtLogin($0) }
-            )) {
-                Text("Launch at login")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.70))
-            }
-            .toggleStyle(.switch)
-            .tint(Color(red: 0.48, green: 0.73, blue: 0.57))
-        }
-        .padding(14)
-        .background(calmPanel(fillOpacity: 0.048, strokeOpacity: 0.045))
-    }
-
     private var diagnostics: some View {
         DisclosureGroup {
             VStack(alignment: .leading, spacing: 8) {
@@ -326,13 +281,6 @@ struct PopoverRootView: View {
 
     private var refreshSummaryDetail: String {
         state.updateState.phase == .available ? "update available" : "manual refresh"
-    }
-
-    private var refreshButtonTitle: String {
-        if state.diagnostics.manualRefreshCooldownRemaining > 0 {
-            return "Refresh in \(state.diagnostics.manualRefreshCooldownRemaining)s"
-        }
-        return "Manual Refresh"
     }
 
     private func summaryCard(title: String, value: String, detail: String) -> some View {
