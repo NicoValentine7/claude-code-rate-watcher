@@ -16,11 +16,16 @@ final class AppState: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published private(set) var isPopoverPresented = false
 
+    let historyStore = HistoryStore()
+
     private let statuslineService = StatuslineService()
     private let authStore = AuthStore()
     private let claudeCLI = ClaudeCLI()
     private let notificationService = NotificationService()
     private let launchAtLoginService = LaunchAtLoginService()
+    private var lastCapturedPercent: (fiveHour: Int, sevenDay: Int)?
+    private var lastCaptureTime: Date?
+    private static let minimumCaptureInterval: TimeInterval = 30
     private lazy var rateLimitService = RateLimitService(
         authProvider: authStore,
         claudeCLI: claudeCLI
@@ -49,6 +54,9 @@ final class AppState: ObservableObject {
         startLoops()
         reloadLocalUsage()
         Task { await refreshLive(reason: "startup") }
+        Task.detached { [historyStore] in
+            try? await historyStore.runMaintenance()
+        }
     }
 
     func setPopoverPresented(_ presented: Bool) {
@@ -274,6 +282,56 @@ final class AppState: ObservableObject {
     private func recomputePresentation() {
         statusBarPercent = effectiveFiveHourPercent
         statusBarTitle = formattedStatusTitle(for: effectiveFiveHourPercent)
+        captureHistoryIfNeeded()
+    }
+
+    private func captureHistoryIfNeeded() {
+        let captureNow = Date()
+        let currentPercents = (fiveHour: effectiveFiveHourPercent, sevenDay: effectiveSevenDayPercent)
+
+        if let last = lastCapturedPercent,
+           let lastTime = lastCaptureTime,
+           last == currentPercents,
+           captureNow.timeIntervalSince(lastTime) < Self.minimumCaptureInterval * 2 {
+            return
+        }
+
+        if let lastTime = lastCaptureTime,
+           captureNow.timeIntervalSince(lastTime) < Self.minimumCaptureInterval {
+            return
+        }
+
+        lastCapturedPercent = currentPercents
+        lastCaptureTime = captureNow
+
+        let historySnapshot = HistorySnapshot(
+            timestamp: captureNow,
+            fiveHourPercent: effectiveFiveHourPercent,
+            sevenDayPercent: effectiveSevenDayPercent,
+            fiveHourWeightedTokens: weightedTokens(from: usageSummary, weekly: false),
+            sevenDayWeightedTokens: weightedTokens(from: usageSummary, weekly: true),
+            messageCount: usageSummary.messageCount,
+            weeklyMessageCount: usageSummary.weeklyMessageCount,
+            source: snapshot.source,
+            isLive: snapshot.isLive
+        )
+
+        Task.detached { [historyStore] in
+            try? await historyStore.append(historySnapshot)
+        }
+    }
+
+    private func weightedTokens(from summary: UsageSummary, weekly: Bool) -> UInt64 {
+        if weekly {
+            return summary.weeklyInputTokens
+                + (summary.weeklyOutputTokens * 5)
+                + summary.weeklyCacheCreationTokens
+                + (summary.weeklyCacheReadTokens / 10)
+        }
+        return summary.totalInputTokens
+            + (summary.totalOutputTokens * 5)
+            + summary.totalCacheCreationTokens
+            + (summary.totalCacheReadTokens / 10)
     }
 
     private func formattedStatusTitle(for percent: Int) -> String {

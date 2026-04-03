@@ -3,6 +3,12 @@ import SwiftUI
 
 struct PopoverRootView: View {
     @EnvironmentObject private var state: AppState
+    @State private var selectedTab: PopoverTab = .current
+
+    private enum PopoverTab: String, CaseIterable {
+        case current = "Current"
+        case history = "History"
+    }
 
     var body: some View {
         ZStack {
@@ -11,16 +17,29 @@ struct PopoverRootView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     header
-                    heroCard
-                    summaryStrip
-                    if state.updateState.phase == .available {
-                        updateBanner
+
+                    Picker("View", selection: $selectedTab) {
+                        ForEach(PopoverTab.allCases, id: \.self) { tab in
+                            Text(tab.rawValue).tag(tab)
+                        }
                     }
-                    if state.authState.status != .authenticated {
-                        authCard
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 2)
+
+                    if selectedTab == .current {
+                        heroCard
+                        summaryStrip
+                        if state.updateState.phase == .available {
+                            updateBanner
+                        }
+                        if state.authState.status != .authenticated {
+                            authCard
+                        }
+                        tokenBreakdown
+                        diagnostics
+                    } else {
+                        UsageHistoryChart()
                     }
-                    tokenBreakdown
-                    diagnostics
                 }
                 .padding(16)
             }
