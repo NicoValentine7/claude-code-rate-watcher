@@ -35,6 +35,7 @@ jobs:
           chmod +x scripts/build_app.sh
           APP_PATH="$(./scripts/build_app.sh release)"
           cp .build/universal-ccrw "${APP_PATH}/Contents/MacOS/ccrw"
+          install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_PATH}/Contents/MacOS/ccrw" 2>/dev/null || true
           echo "v${GITHUB_REF_NAME#v}" > dist/VERSION
           tar czf claude-code-rate-watcher-macos-app.tar.gz -C dist "Claude Code Rate Watcher.app" VERSION
 
