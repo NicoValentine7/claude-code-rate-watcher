@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 const USAGE_API_URL: &str = "https://api.anthropic.com/api/oauth/usage";
 const MESSAGES_API_URL: &str = "https://api.anthropic.com/v1/messages";
+const USER_AGENT: &str = concat!("claude-code-rate-watcher/", env!("CARGO_PKG_VERSION"));
 const CACHE_TTL_ACTIVE: Duration = Duration::from_secs(90);
 const CACHE_TTL_IDLE: Duration = Duration::from_secs(300);
 const MANUAL_REFRESH_COOLDOWN: Duration = Duration::from_secs(30);
@@ -382,7 +383,7 @@ fn try_usage_api(credential: &AuthCredential) -> Result<ApiRateLimitData, ApiErr
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
         .header("anthropic-beta", "oauth-2025-04-20")
-        .header("User-Agent", "claude-code-rate-watcher/0.2.0");
+        .header("User-Agent", USER_AGENT);
 
     request = match credential {
         AuthCredential::Bearer(token) => {
@@ -431,7 +432,7 @@ fn try_haiku_probe(bearer_token: &str) -> Result<ApiRateLimitData, ApiError> {
         .post(MESSAGES_API_URL)
         .header("Authorization", &format!("Bearer {}", bearer_token))
         .header("Content-Type", "application/json")
-        .header("User-Agent", "claude-code-rate-watcher/0.2.0")
+        .header("User-Agent", USER_AGENT)
         .header("anthropic-beta", "oauth-2025-04-20")
         .header("anthropic-version", "2023-06-01")
         .send_json(&serde_json::json!({
