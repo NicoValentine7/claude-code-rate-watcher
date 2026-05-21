@@ -26,6 +26,7 @@ enum AppEvent {
     FileChanged,
     StatusLineUpdate,
     TimerTick,
+    CodexRefreshTick,
     UpdateAvailable(updater::UpdateInfo),
     UpdateNotAvailable,
     Resize(f64),
@@ -33,7 +34,8 @@ enum AppEvent {
     ManualRefresh,
 }
 
-const DEBOUNCE_INTERVAL: Duration = Duration::from_secs(1);
+const FILE_CHANGE_DEBOUNCE_INTERVAL: Duration = Duration::from_millis(250);
+const CODEX_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const POPOVER_WIDTH: f64 = 340.0;
 const POPOVER_HEIGHT: f64 = 200.0;
 
@@ -202,7 +204,7 @@ fn main() {
             eprintln!("[statusline] Auto-install failed: {}", e);
         }
     }
-    let mut last_reload = Instant::now();
+    let mut pending_file_refresh = DebouncedRefresh::new(FILE_CHANGE_DEBOUNCE_INTERVAL);
 
     // --- File watcher ---
     let (tx, rx) = mpsc::channel();
@@ -229,6 +231,13 @@ fn main() {
         let _ = proxy_timer.send_event(AppEvent::TimerTick);
     });
 
+    // --- Codex local data fallback refresh (fast, no network call) ---
+    let proxy_codex_timer = proxy.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(CODEX_REFRESH_INTERVAL);
+        let _ = proxy_codex_timer.send_event(AppEvent::CodexRefreshTick);
+    });
+
     // --- Update checker thread ---
     let proxy_update = proxy.clone();
     let updater_clone = app_updater.clone();
@@ -253,7 +262,16 @@ fn main() {
 
     // --- Main event loop ---
     event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(100));
+        let now = Instant::now();
+        *control_flow = ControlFlow::WaitUntil(now + Duration::from_millis(100));
+
+        if pending_file_refresh.take_due(now) {
+            codex_cache.invalidate();
+            api_poller.poll();
+            let api_data = api_poller.get_data();
+            let effective_pct = render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
+            notifier.check_and_notify(effective_pct);
+        }
 
         // Tray icon click → toggle popover
         if let Ok(TrayIconEvent::Click {
@@ -305,16 +323,7 @@ fn main() {
             }
 
             Event::UserEvent(AppEvent::FileChanged) => {
-                if last_reload.elapsed() < DEBOUNCE_INTERVAL {
-                    return;
-                }
-                last_reload = Instant::now();
-
-                api_poller.poll();
-                let api_data = api_poller.get_data();
-                let effective_pct =
-                    render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
-                notifier.check_and_notify(effective_pct);
+                pending_file_refresh.request(Instant::now());
             }
 
             Event::UserEvent(AppEvent::TimerTick) => {
@@ -323,10 +332,19 @@ fn main() {
                 render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
             }
 
-            Event::UserEvent(AppEvent::ManualRefresh) => {
-                if api_poller.force_poll() {
-                    let api_data = api_poller.get_data();
+            Event::UserEvent(AppEvent::CodexRefreshTick) => {
+                let api_data = api_poller.get_data();
+                let effective_pct =
                     render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
+                notifier.check_and_notify(effective_pct);
+            }
+
+            Event::UserEvent(AppEvent::ManualRefresh) => {
+                codex_cache.invalidate();
+                let api_called = api_poller.force_poll();
+                let api_data = api_poller.get_data();
+                render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
+                if api_called {
                     let _ = webview.evaluate_script("setRefreshResult(true)");
                 } else {
                     let remaining = api_poller.get_cooldown_remaining().unwrap_or(0);
@@ -400,6 +418,34 @@ fn menu_bar_summary(
         percent,
         source,
         label,
+    }
+}
+
+#[derive(Debug)]
+struct DebouncedRefresh {
+    delay: Duration,
+    due_at: Option<Instant>,
+}
+
+impl DebouncedRefresh {
+    fn new(delay: Duration) -> Self {
+        Self {
+            delay,
+            due_at: None,
+        }
+    }
+
+    fn request(&mut self, now: Instant) {
+        self.due_at = Some(now + self.delay);
+    }
+
+    fn take_due(&mut self, now: Instant) -> bool {
+        if self.due_at.is_some_and(|due_at| now >= due_at) {
+            self.due_at = None;
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -483,6 +529,20 @@ mod tests {
         assert_eq!(summary.percent, 0);
         assert_eq!(summary.source, "none");
         assert_eq!(summary.label, "No data");
+    }
+
+    #[test]
+    fn debounced_refresh_waits_for_quiet_period() {
+        let mut debounce = DebouncedRefresh::new(Duration::from_millis(250));
+        let start = Instant::now();
+
+        debounce.request(start);
+        assert!(!debounce.take_due(start + Duration::from_millis(249)));
+
+        debounce.request(start + Duration::from_millis(200));
+        assert!(!debounce.take_due(start + Duration::from_millis(449)));
+        assert!(debounce.take_due(start + Duration::from_millis(450)));
+        assert!(!debounce.take_due(start + Duration::from_millis(451)));
     }
 
     fn api_data(

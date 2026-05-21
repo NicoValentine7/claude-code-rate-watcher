@@ -72,6 +72,10 @@ pub struct CodexRateCache {
 }
 
 impl CodexRateCache {
+    pub fn invalidate(&mut self) {
+        self.last_signature = None;
+    }
+
     pub fn load_latest(&mut self) -> Option<CodexRateLimitData> {
         let files = collect_candidate_session_files()?;
         self.load_latest_from_session_files(files)
@@ -377,6 +381,39 @@ mod tests {
 
         let reparsed = cache
             .load_latest_from_session_files(vec![session_file(&path)])
+            .unwrap();
+        assert_eq!(reparsed.five_hour_percent, Some(30));
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn cache_invalidation_forces_reparse_even_with_same_signature() {
+        let path = std::env::temp_dir().join(format!(
+            "ccrw-codex-cache-invalidate-test-{}.jsonl",
+            std::process::id()
+        ));
+        let future_reset = (Utc::now() + chrono::TimeDelta::hours(1)).timestamp();
+
+        write_session_file(&path, 20.0, future_reset, false);
+        let original_signature = session_file(&path);
+
+        let mut cache = CodexRateCache::default();
+        let first = cache
+            .load_latest_from_session_files(vec![original_signature.clone()])
+            .unwrap();
+        assert_eq!(first.five_hour_percent, Some(20));
+
+        write_session_file(&path, 30.0, future_reset, false);
+
+        let cached = cache
+            .load_latest_from_session_files(vec![original_signature.clone()])
+            .unwrap();
+        assert_eq!(cached.five_hour_percent, Some(20));
+
+        cache.invalidate();
+        let reparsed = cache
+            .load_latest_from_session_files(vec![original_signature])
             .unwrap();
         assert_eq!(reparsed.five_hour_percent, Some(30));
 
