@@ -35,23 +35,15 @@ pub fn start_watcher(sender: Sender<WatcherMessage>) -> notify::Result<impl Watc
 
     let mut watcher = notify::recommended_watcher(move |res: Result<Event, notify::Error>| {
         if let Ok(event) = res {
-            match event.kind {
-                EventKind::Modify(_) | EventKind::Create(_) => {
-                    for path in &event.paths {
-                        // Check if this is the statusline data file
-                        if let Some(ref sl_path) = statusline_data {
-                            if path == sl_path {
-                                let _ = sender.send(WatcherMessage::StatusLineUpdate);
-                                return;
-                            }
-                        }
-                        // Check for .jsonl session files
-                        if path.extension().is_some_and(|e| e == "jsonl") {
-                            let _ = sender.send(WatcherMessage::FileChanged);
-                        }
-                    }
+            if is_change_event(&event.kind) {
+                if should_forward_statusline_update(&event, statusline_data.as_deref()) {
+                    let _ = sender.send(WatcherMessage::StatusLineUpdate);
+                    return;
                 }
-                _ => {}
+
+                if should_forward_session_update(&event) {
+                    let _ = sender.send(WatcherMessage::FileChanged);
+                }
             }
         }
     })?;
@@ -73,6 +65,30 @@ pub fn start_watcher(sender: Sender<WatcherMessage>) -> notify::Result<impl Watc
     }
 
     Ok(watcher)
+}
+
+fn is_change_event(kind: &EventKind) -> bool {
+    matches!(
+        kind,
+        EventKind::Any | EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+    )
+}
+
+fn should_forward_statusline_update(event: &Event, statusline_data: Option<&Path>) -> bool {
+    let Some(statusline_data) = statusline_data else {
+        return false;
+    };
+
+    event.paths.iter().any(|path| path == statusline_data)
+}
+
+fn should_forward_session_update(event: &Event) -> bool {
+    event.paths.iter().any(|path| is_jsonl_path(path))
+}
+
+fn is_jsonl_path(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|extension| extension == "jsonl")
 }
 
 fn watch_targets(home_dir: &Path, statusline_data: Option<PathBuf>) -> Vec<WatchTarget> {
@@ -187,6 +203,28 @@ mod tests {
         assert!(targets[0].required);
 
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn forwards_jsonl_modify_events() {
+        let event = Event::new(EventKind::Modify(notify::event::ModifyKind::Data(
+            notify::event::DataChange::Content,
+        )))
+        .add_path(PathBuf::from("/tmp/session.jsonl"));
+
+        assert!(is_change_event(&event.kind));
+        assert!(should_forward_session_update(&event));
+    }
+
+    #[test]
+    fn skips_non_jsonl_session_events() {
+        let event = Event::new(EventKind::Modify(notify::event::ModifyKind::Data(
+            notify::event::DataChange::Content,
+        )))
+        .add_path(PathBuf::from("/tmp/session.tmp"));
+
+        assert!(is_change_event(&event.kind));
+        assert!(!should_forward_session_update(&event));
     }
 
     fn assert_target(

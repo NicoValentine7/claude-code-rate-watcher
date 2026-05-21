@@ -6,6 +6,7 @@ Rate Watcher is a macOS menu bar app that combines reported rate limit data from
 
 - Claude Code data comes from the Claude usage API/statusline integration.
 - Codex data comes from local `rate_limits` snapshots in `~/.codex/sessions/**/*.jsonl` and `~/.codex/archived_sessions/*.jsonl`.
+- Codex local data is refreshed through file notifications plus a short fallback scan, while Claude API polling stays throttled separately.
 - The menu bar percentage uses the higher 5-hour value between Claude Code and Codex, and the popover labels the source driving that value.
 - Release packaging is tag-driven through `.github/workflows/release.yml`, producing `claude-code-rate-watcher-macos-universal.tar.gz` and updating the Homebrew tap.
 - The Release workflow smoke-tests the generated tarball before publishing by extracting it and checking `ccrw --version` against the tag.
@@ -21,7 +22,7 @@ Rate Watcher is a macOS menu bar app that combines reported rate limit data from
 2. Keep reported usage fresh and explainable.
    - Prefer provider-reported percentages.
    - Treat expired reset windows as 0%.
-   - Avoid reparsing large local session files unless their metadata changes.
+   - Keep Codex local refresh fast without increasing Claude API polling pressure.
 
 3. Keep docs aligned with shipped behavior.
    - README should describe Claude Code and Codex support together.

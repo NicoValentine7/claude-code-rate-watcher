@@ -6,7 +6,7 @@ A macOS menu bar app that monitors your [Claude Code](https://docs.anthropic.com
 
 ## Features
 
-- **Real-time tracking** — Monitors rate limit usage across a sliding 5-hour window directly from your menu bar
+- **Real-time tracking** — Monitors rate limit usage across a sliding 5-hour window directly from your menu bar, with fast local refresh for Codex session updates
 - **Source clarity** — Shows whether the menu bar percentage is currently coming from Claude Code, Codex, or both
 - **Weekly limit monitoring** — Also tracks the 168-hour (weekly) token usage window
 - **Codex support** — Reads Codex local session rate limit data from `~/.codex/sessions/` and `~/.codex/archived_sessions/`
@@ -51,7 +51,7 @@ cargo build --release
 
 For Claude Code, the app uses Claude Code's statusline/API rate limit data.
 
-For Codex, the app watches `~/.codex/sessions/**/*.jsonl` and `~/.codex/archived_sessions/*.jsonl`, then reads the `rate_limits` snapshots written by Codex.
+For Codex, the app watches `~/.codex/sessions/**/*.jsonl` and `~/.codex/archived_sessions/*.jsonl`, then reads the `rate_limits` snapshots written by Codex. File changes are coalesced briefly and Codex data is also rechecked every few seconds as a fallback, without extra network calls.
 
 Both sources report 5-hour and weekly percentages directly. The menu bar shows the higher 5-hour value, and the popover labels which source is driving that menu bar percentage.
 
