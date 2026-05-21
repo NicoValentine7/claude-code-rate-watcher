@@ -36,6 +36,14 @@ jobs:
         run: |
           tar czf claude-code-rate-watcher-macos-universal.tar.gz ccrw
 
+      - name: Smoke test release tarball
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          tmp_dir="$(mktemp -d)"
+          tar xzf claude-code-rate-watcher-macos-universal.tar.gz -C "$tmp_dir"
+          test -x "$tmp_dir/ccrw"
+          "$tmp_dir/ccrw" --version | grep -Fx "ccrw ${VERSION}"
+
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:

@@ -8,11 +8,13 @@ Rate Watcher is a macOS menu bar app that combines reported rate limit data from
 - Codex data comes from local `rate_limits` snapshots in `~/.codex/sessions/**/*.jsonl` and `~/.codex/archived_sessions/*.jsonl`.
 - The menu bar percentage uses the higher 5-hour value between Claude Code and Codex, and the popover labels the source driving that value.
 - Release packaging is tag-driven through `.github/workflows/release.yml`, producing `claude-code-rate-watcher-macos-universal.tar.gz` and updating the Homebrew tap.
+- The Release workflow smoke-tests the generated tarball before publishing by extracting it and checking `ccrw --version` against the tag.
 
 ## Maintenance Priorities
 
 1. Keep release infrastructure boring.
    - Release workflow actions should stay on supported runtimes.
+   - Release tarballs should stay smoke-tested before publishing.
    - Release notes should be hand-written for user-visible changes.
    - Homebrew Formula output should be checked after every release.
 
@@ -27,6 +29,5 @@ Rate Watcher is a macOS menu bar app that combines reported rate limit data from
 
 ## Next Good Candidates
 
-- Keep the Homebrew tap description aligned with Claude Code + Codex support.
-- Consider adding a release smoke check that downloads the tarball and runs `ccrw --version`.
+- Keep release smoke checks aligned with any future artifact layout changes.
 - Consider linking from the popover to both Claude and Codex usage/help locations if Codex exposes a stable one.
