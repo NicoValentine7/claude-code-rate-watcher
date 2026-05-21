@@ -2,13 +2,15 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
-const APP_NAME: &str = "Claude Code Rate Watcher";
+// Keep the historical bundle directory so upgrades replace the existing app.
+const APP_BUNDLE_NAME: &str = "Claude Code Rate Watcher";
+const APP_DISPLAY_NAME: &str = "Rate Watcher";
 const BUNDLE_ID: &str = "com.claude-code-rate-watcher";
 const APP_ICON: &[u8] = include_bytes!("../assets/AppIcon.icns");
 const EXECUTABLE_NAME: &str = "ccrw";
 
 fn app_path() -> PathBuf {
-    PathBuf::from(format!("/Applications/{}.app", APP_NAME))
+    PathBuf::from(format!("/Applications/{}.app", APP_BUNDLE_NAME))
 }
 
 /// Create or update the .app bundle in /Applications.
@@ -111,7 +113,7 @@ fn create_app_bundle(
 </dict>
 </plist>
 "#,
-        name = APP_NAME,
+        name = APP_DISPLAY_NAME,
         bundle_id = BUNDLE_ID,
         version = version,
         exe = EXECUTABLE_NAME,

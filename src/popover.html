@@ -53,6 +53,39 @@
     color: #FF9F0A;
   }
 
+  .menu-source {
+    display: none;
+    margin: 0 16px 14px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .menu-source-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+  }
+
+  .menu-source-value {
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.86);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .menu-source-value.safe { color: #30D158; }
+  .menu-source-value.warning { color: #FF9F0A; }
+  .menu-source-value.danger { color: #FF453A; }
+
   /* Auth Required */
   .auth-required {
     display: none;
@@ -583,6 +616,11 @@
 
     <!-- Normal usage content -->
     <div class="usage-content" id="usage-section">
+      <div class="menu-source" id="menu-source">
+        <span class="menu-source-label">Menu bar</span>
+        <span class="menu-source-value safe" id="menu-source-value">No data</span>
+      </div>
+
       <div id="claude-block">
         <div class="section">
           <div class="section-header">
@@ -729,6 +767,8 @@ function updateData(payload) {
   var usageSection = document.getElementById('usage-section');
   var srcBadge = document.getElementById('source-badge');
   var planBadge = document.getElementById('plan-badge');
+  var menuSource = document.getElementById('menu-source');
+  var menuSourceValue = document.getElementById('menu-source-value');
   var claudeBlock = document.getElementById('claude-block');
   var codexBlock = document.getElementById('codex-block');
 
@@ -738,6 +778,7 @@ function updateData(payload) {
     connectingSection.className = 'connecting-state';
     usageSection.style.display = 'none';
     srcBadge.style.display = 'none';
+    menuSource.style.display = 'none';
     // Reset login button state
     var loginBtn = document.getElementById('auth-login-btn');
     loginBtn.disabled = false;
@@ -756,6 +797,7 @@ function updateData(payload) {
       authSection.className = 'auth-required';
       connectingSection.className = 'connecting-state visible';
       usageSection.style.display = 'none';
+      menuSource.style.display = 'none';
       srcBadge.textContent = '...';
       srcBadge.className = 'badge connecting';
       srcBadge.style.display = '';
@@ -837,6 +879,15 @@ function updateData(payload) {
   }
   if (hasCodex) {
     renderRateData('codex-', codex);
+  }
+
+  if (payload.menu_bar && payload.menu_bar.source !== 'none') {
+    var menuPct = payload.menu_bar.percent || 0;
+    menuSource.style.display = 'flex';
+    menuSourceValue.textContent = payload.menu_bar.label + ' ' + menuPct + '%';
+    menuSourceValue.className = 'menu-source-value ' + statusClass(menuPct);
+  } else {
+    menuSource.style.display = 'none';
   }
 
   if (d.is_live && hasCodex) {

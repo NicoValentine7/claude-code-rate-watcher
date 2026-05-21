@@ -31,7 +31,7 @@ impl NotificationState {
         } else if usage_percent >= 75 {
             self.send(
                 "🟡 Rate limit warning",
-                &format!("Usage at {}% of estimated 5h limit.", usage_percent),
+                &format!("Usage at {}% of current 5h limit.", usage_percent),
             );
             self.last_warning_sent = Some(now);
         }
@@ -41,7 +41,7 @@ impl NotificationState {
         let _ = Notification::new()
             .summary(title)
             .body(body)
-            .appname("Claude Rate Watcher")
+            .appname("Rate Watcher")
             .show();
     }
 }

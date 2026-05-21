@@ -21,7 +21,7 @@ impl TrayApp {
         // Quit is handled inside the WebView.
         let tray = TrayIconBuilder::new()
             .with_icon(icon)
-            .with_tooltip("Claude Code Rate Watcher")
+            .with_tooltip("Rate Watcher")
             .with_title(&title)
             .build()
             .expect("Failed to create tray icon");

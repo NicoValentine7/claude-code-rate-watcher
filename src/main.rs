@@ -62,7 +62,7 @@ fn main() {
         .with_resizable(false)
         .with_visible(false)
         .with_inner_size(LogicalSize::new(POPOVER_WIDTH, POPOVER_HEIGHT))
-        .with_title("Claude Rate Watcher")
+        .with_title("Rate Watcher")
         .build(&event_loop)
         .expect("Failed to create window");
 
@@ -369,39 +369,143 @@ fn render_rate_state(
     api_data: &api_client::ApiRateLimitData,
 ) -> u32 {
     let codex_data = codex_cache.load_latest();
-    let effective_pct = effective_percent(api_data, codex_data.as_ref());
-    tray_app.update_percent(effective_pct);
-    push_to_webview(webview, api_data, codex_data.as_ref());
-    effective_pct
+    let menu_bar = menu_bar_summary(api_data, codex_data.as_ref());
+    tray_app.update_percent(menu_bar.percent);
+    push_to_webview(webview, api_data, codex_data.as_ref(), &menu_bar);
+    menu_bar.percent
 }
 
-fn effective_percent(
+fn menu_bar_summary(
     api_data: &api_client::ApiRateLimitData,
     codex_data: Option<&codex_rate::CodexRateLimitData>,
-) -> u32 {
+) -> MenuBarSummary {
     let claude_pct = api_data.five_hour_percent.unwrap_or(0);
     let codex_pct = codex_data.and_then(|d| d.five_hour_percent).unwrap_or(0);
-    claude_pct.max(codex_pct)
+    let has_claude = api_data.five_hour_percent.is_some() && !api_data.auth_missing;
+    let has_codex = codex_data.and_then(|d| d.five_hour_percent).is_some();
+
+    let (source, label, percent) = if has_codex && codex_pct > claude_pct {
+        ("codex", "Codex", codex_pct)
+    } else if has_claude && has_codex && claude_pct == codex_pct {
+        ("both", "Both", claude_pct)
+    } else if has_claude {
+        ("claude", "Claude Code", claude_pct)
+    } else if has_codex {
+        ("codex", "Codex", codex_pct)
+    } else {
+        ("none", "No data", 0)
+    };
+
+    MenuBarSummary {
+        percent,
+        source,
+        label,
+    }
+}
+
+#[derive(serde::Serialize)]
+struct MenuBarSummary {
+    percent: u32,
+    source: &'static str,
+    label: &'static str,
 }
 
 #[derive(serde::Serialize)]
 struct DashboardPayload<'a> {
     claude: &'a api_client::ApiRateLimitData,
     codex: Option<&'a codex_rate::CodexRateLimitData>,
+    menu_bar: &'a MenuBarSummary,
 }
 
 fn push_to_webview(
     webview: &wry::WebView,
     api_data: &api_client::ApiRateLimitData,
     codex_data: Option<&codex_rate::CodexRateLimitData>,
+    menu_bar: &MenuBarSummary,
 ) {
     let payload = DashboardPayload {
         claude: api_data,
         codex: codex_data,
+        menu_bar,
     };
 
     if let Ok(json) = serde_json::to_string(&payload) {
         let _ = webview.evaluate_script(&format!("updateData({})", json));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn menu_bar_summary_prefers_codex_when_codex_is_higher() {
+        let api_data = api_data(Some(20), false);
+        let codex_data = codex_data(Some(42));
+
+        let summary = menu_bar_summary(&api_data, Some(&codex_data));
+
+        assert_eq!(summary.percent, 42);
+        assert_eq!(summary.source, "codex");
+        assert_eq!(summary.label, "Codex");
+    }
+
+    #[test]
+    fn menu_bar_summary_prefers_claude_when_claude_is_higher() {
+        let api_data = api_data(Some(70), false);
+        let codex_data = codex_data(Some(12));
+
+        let summary = menu_bar_summary(&api_data, Some(&codex_data));
+
+        assert_eq!(summary.percent, 70);
+        assert_eq!(summary.source, "claude");
+        assert_eq!(summary.label, "Claude Code");
+    }
+
+    #[test]
+    fn menu_bar_summary_marks_tied_sources_as_both() {
+        let api_data = api_data(Some(33), false);
+        let codex_data = codex_data(Some(33));
+
+        let summary = menu_bar_summary(&api_data, Some(&codex_data));
+
+        assert_eq!(summary.percent, 33);
+        assert_eq!(summary.source, "both");
+        assert_eq!(summary.label, "Both");
+    }
+
+    #[test]
+    fn menu_bar_summary_reports_no_data_when_sources_are_missing() {
+        let api_data = api_data(None, true);
+
+        let summary = menu_bar_summary(&api_data, None);
+
+        assert_eq!(summary.percent, 0);
+        assert_eq!(summary.source, "none");
+        assert_eq!(summary.label, "No data");
+    }
+
+    fn api_data(
+        five_hour_percent: Option<u32>,
+        auth_missing: bool,
+    ) -> api_client::ApiRateLimitData {
+        api_client::ApiRateLimitData {
+            five_hour_percent,
+            auth_missing,
+            ..Default::default()
+        }
+    }
+
+    fn codex_data(five_hour_percent: Option<u32>) -> codex_rate::CodexRateLimitData {
+        codex_rate::CodexRateLimitData {
+            five_hour_percent,
+            seven_day_percent: None,
+            five_hour_resets_at: None,
+            seven_day_resets_at: None,
+            plan_label: None,
+            is_live: true,
+            last_updated_at: None,
+        }
     }
 }
 
