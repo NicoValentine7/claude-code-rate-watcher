@@ -1,6 +1,6 @@
 # Claude Code Rate Watcher
 
-A macOS menu bar app that monitors your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) API rate limit usage in real time.
+A macOS menu bar app that monitors your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and Codex rate limit usage in real time.
 
 ![Screenshot](docs/screenshot.png)
 
@@ -8,6 +8,7 @@ A macOS menu bar app that monitors your [Claude Code](https://docs.anthropic.com
 
 - **Real-time tracking** — Monitors token usage across a sliding 5-hour window directly from your menu bar
 - **Weekly limit monitoring** — Also tracks the 168-hour (weekly) token usage window
+- **Codex support** — Reads Codex local session rate limit data from `~/.codex/sessions/`
 - **Color-coded icon** — Menu bar icon changes color based on usage level (green → orange → red)
 - **Reset countdown** — Shows time remaining until your rate limit resets
 - **Threshold notifications** — Native macOS alerts when usage hits 75% and 90%
@@ -42,12 +43,16 @@ cargo build --release
 ## Requirements
 
 - **macOS** (Apple Silicon and Intel supported)
-- **Claude Code** must be installed — the app reads session data from `~/.claude/projects/`
+- **Claude Code** or **Codex** must be installed — the app reads local session/rate-limit data from `~/.claude/` and `~/.codex/`
 - **Rust toolchain** (only if building from source)
 
 ## How It Works
 
-The app watches `~/.claude/projects/**/*.jsonl` session files for changes and calculates your token usage using cost-weighted values:
+For Claude Code, the app uses Claude Code's statusline/API rate limit data.
+
+For Codex, the app watches `~/.codex/sessions/**/*.jsonl` and reads the `rate_limits` snapshots written by Codex. Codex reports the 5-hour and weekly percentages directly, so no token-weight heuristic is needed for Codex.
+
+The legacy local Claude estimate code uses cost-weighted token estimates:
 
 | Token Type | Weight |
 |---|---|
@@ -63,7 +68,7 @@ The app watches `~/.claude/projects/**/*.jsonl` session files for changes and ca
 | 5 hours | 25,000,000 weighted tokens |
 | Weekly (168h) | 225,000,000 weighted tokens |
 
-> These are heuristic estimates for the Max plan. You can adjust the constants in `src/usage_tracker.rs` to match your plan.
+> These are heuristic estimates kept for the local estimate code in `src/usage_tracker.rs`. The current UI prioritizes reported rate-limit percentages from Claude Code and Codex.
 
 ## Updating
 

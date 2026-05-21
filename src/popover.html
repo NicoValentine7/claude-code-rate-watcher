@@ -542,7 +542,7 @@
 <body>
   <div class="popover">
     <div class="header">
-      <span class="header-title">Claude Code</span>
+      <span class="header-title">Rate Watcher</span>
       <span class="badge" id="plan-badge">Max</span>
       <span class="badge live" id="source-badge">Live</span>
       <span style="flex:1"></span>
@@ -583,30 +583,61 @@
 
     <!-- Normal usage content -->
     <div class="usage-content" id="usage-section">
-      <div class="section">
-        <div class="section-header">
-          <span class="section-icon">&#x23F1;</span>
-          <span class="section-label">5-Hour Window</span>
-          <span class="section-value safe" id="pct-value">0%</span>
+      <div id="claude-block">
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x23F1;</span>
+            <span class="section-label">Claude Code · 5-Hour Window</span>
+            <span class="section-value safe" id="pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="reset-text" id="reset-text">No active session</div>
         </div>
-        <div class="progress-track">
-          <div class="progress-fill safe" id="progress-bar" style="width: 0%"></div>
+
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x1F4C5;</span>
+            <span class="section-label">Claude Code · Weekly Limit</span>
+            <span class="section-value safe" id="weekly-pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="weekly-progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="sub-stats">
+            <span class="reset-text" id="weekly-reset-text">No activity</span>
+            <span class="reset-text" id="weekly-tokens-text"></span>
+          </div>
         </div>
-        <div class="reset-text" id="reset-text">No active session</div>
       </div>
 
-      <div class="section">
-        <div class="section-header">
-          <span class="section-icon">&#x1F4C5;</span>
-          <span class="section-label">Weekly Limit</span>
-          <span class="section-value safe" id="weekly-pct-value">0%</span>
+      <div id="codex-block" style="display:none">
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x23F1;</span>
+            <span class="section-label">Codex · 5-Hour Window</span>
+            <span class="section-value safe" id="codex-pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="codex-progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="reset-text" id="codex-reset-text">No active session</div>
         </div>
-        <div class="progress-track">
-          <div class="progress-fill safe" id="weekly-progress-bar" style="width: 0%"></div>
-        </div>
-        <div class="sub-stats">
-          <span class="reset-text" id="weekly-reset-text">No activity</span>
-          <span class="reset-text" id="weekly-tokens-text"></span>
+
+        <div class="section">
+          <div class="section-header">
+            <span class="section-icon">&#x1F4C5;</span>
+            <span class="section-label">Codex · Weekly Limit</span>
+            <span class="section-value safe" id="codex-weekly-pct-value">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill safe" id="codex-weekly-progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="sub-stats">
+            <span class="reset-text" id="codex-weekly-reset-text">No activity</span>
+            <span class="reset-text" id="codex-weekly-tokens-text"></span>
+          </div>
         </div>
       </div>
 
@@ -647,14 +678,62 @@ function statusClass(pct) {
   return 'safe';
 }
 
-function updateData(d) {
+function hasRateData(d) {
+  return !!d && (d.five_hour_percent != null || d.seven_day_percent != null);
+}
+
+function renderRateData(prefix, d) {
+  var h5pct = (d.five_hour_percent != null) ? d.five_hour_percent : 0;
+  var w7pct = (d.seven_day_percent != null) ? d.seven_day_percent : 0;
+
+  var cls = statusClass(h5pct);
+  var pctEl = document.getElementById(prefix + 'pct-value');
+  pctEl.textContent = h5pct + '%';
+  pctEl.className = 'section-value ' + cls;
+
+  var bar = document.getElementById(prefix + 'progress-bar');
+  bar.style.width = Math.min(h5pct, 100) + '%';
+  bar.className = 'progress-fill ' + cls;
+
+  var resetText = 'No active session';
+  if (d.five_hour_resets_at) {
+    resetText = formatResetTime(d.five_hour_resets_at);
+  }
+  document.getElementById(prefix + 'reset-text').textContent = resetText;
+
+  var wCls = statusClass(w7pct);
+  var wPctEl = document.getElementById(prefix + 'weekly-pct-value');
+  wPctEl.textContent = w7pct + '%';
+  wPctEl.className = 'section-value ' + wCls;
+
+  var wBar = document.getElementById(prefix + 'weekly-progress-bar');
+  wBar.style.width = Math.min(w7pct, 100) + '%';
+  wBar.className = 'progress-fill ' + wCls;
+
+  var weeklyResetText = 'No activity';
+  if (d.seven_day_resets_at) {
+    weeklyResetText = formatResetTime(d.seven_day_resets_at);
+  }
+  document.getElementById(prefix + 'weekly-reset-text').textContent = weeklyResetText;
+  document.getElementById(prefix + 'weekly-tokens-text').textContent = '';
+}
+
+function updateData(payload) {
+  var d = payload.claude || payload;
+  var codex = payload.codex || null;
+  var hasClaude = hasRateData(d) && !d.auth_missing;
+  var hasCodex = hasRateData(codex);
+
   var authSection = document.getElementById('auth-section');
   var connectingSection = document.getElementById('connecting-section');
   var usageSection = document.getElementById('usage-section');
   var srcBadge = document.getElementById('source-badge');
+  var planBadge = document.getElementById('plan-badge');
+  var claudeBlock = document.getElementById('claude-block');
+  var codexBlock = document.getElementById('codex-block');
 
   // State 1: Auth missing → show login prompt
-  if (d.auth_missing) {
+  if (d.auth_missing && !hasCodex) {
     authSection.className = 'auth-required visible';
     connectingSection.className = 'connecting-state';
     usageSection.style.display = 'none';
@@ -672,8 +751,7 @@ function updateData(d) {
 
   // State 2: Not live — but may have cached data from last success
   if (!d.is_live) {
-    var hasCached = d.five_hour_percent != null;
-    if (!hasCached) {
+    if (!hasClaude && !hasCodex) {
       // No cached data at all → show connecting spinner
       authSection.className = 'auth-required';
       connectingSection.className = 'connecting-state visible';
@@ -741,7 +819,7 @@ function updateData(d) {
       return;
     }
     // Has cached data → show it with "Retrying" badge, fall through to rendering
-    srcBadge.textContent = 'Retrying';
+    srcBadge.textContent = hasCodex ? 'Codex' : 'Retrying';
     srcBadge.className = 'badge connecting';
     srcBadge.title = d.error_message ? d.error_message + ' — auto-recovers shortly' : '';
     srcBadge.style.display = '';
@@ -751,50 +829,39 @@ function updateData(d) {
   authSection.className = 'auth-required';
   connectingSection.className = 'connecting-state';
   usageSection.style.display = '';
-  if (d.is_live) {
+  claudeBlock.style.display = hasClaude ? '' : 'none';
+  codexBlock.style.display = hasCodex ? '' : 'none';
+
+  if (hasClaude) {
+    renderRateData('', d);
+  }
+  if (hasCodex) {
+    renderRateData('codex-', codex);
+  }
+
+  if (d.is_live && hasCodex) {
+    srcBadge.textContent = 'Live+Codex';
+    srcBadge.className = 'badge live';
+  } else if (d.is_live) {
     srcBadge.textContent = 'Live';
     srcBadge.className = 'badge live';
+  } else if (hasCodex) {
+    srcBadge.textContent = codex.is_live ? 'Codex' : 'Codex cached';
+    srcBadge.className = codex.is_live ? 'badge live' : 'badge connecting';
+  } else {
+    srcBadge.textContent = 'Retrying';
+    srcBadge.className = 'badge connecting';
   }
-  // If stale (is_live=false with cached data), badge was already set to "Stale" above
   srcBadge.style.display = '';
 
-  var h5pct = (d.five_hour_percent != null) ? d.five_hour_percent : 0;
-  var w7pct = (d.seven_day_percent != null) ? d.seven_day_percent : 0;
-
-  // 5-hour percentage
-  var cls = statusClass(h5pct);
-  var pctEl = document.getElementById('pct-value');
-  pctEl.textContent = h5pct + '%';
-  pctEl.className = 'section-value ' + cls;
-
-  // Progress bar
-  var bar = document.getElementById('progress-bar');
-  bar.style.width = Math.min(h5pct, 100) + '%';
-  bar.className = 'progress-fill ' + cls;
-
-  // Reset text
-  var resetText = 'No active session';
-  if (d.five_hour_resets_at) {
-    resetText = formatResetTime(d.five_hour_resets_at);
+  var planLabels = [];
+  if (hasClaude) planLabels.push('Max');
+  if (hasCodex && codex.plan_label) planLabels.push(codex.plan_label);
+  if (planLabels.length === 0) {
+    planBadge.textContent = 'Max';
+  } else {
+    planBadge.textContent = planLabels.join('/');
   }
-  document.getElementById('reset-text').textContent = resetText;
-
-  // Weekly
-  var wCls = statusClass(w7pct);
-  var wPctEl = document.getElementById('weekly-pct-value');
-  wPctEl.textContent = w7pct + '%';
-  wPctEl.className = 'section-value ' + wCls;
-
-  var wBar = document.getElementById('weekly-progress-bar');
-  wBar.style.width = Math.min(w7pct, 100) + '%';
-  wBar.className = 'progress-fill ' + wCls;
-
-  var weeklyResetText = 'No activity';
-  if (d.seven_day_resets_at) {
-    weeklyResetText = formatResetTime(d.seven_day_resets_at);
-  }
-  document.getElementById('weekly-reset-text').textContent = weeklyResetText;
-  document.getElementById('weekly-tokens-text').textContent = '';
 
   // Resize popover to fit content
   requestAnimationFrame(function() {
