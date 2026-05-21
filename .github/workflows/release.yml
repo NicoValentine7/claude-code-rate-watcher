@@ -37,7 +37,7 @@ jobs:
           tar czf claude-code-rate-watcher-macos-universal.tar.gz ccrw
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             claude-code-rate-watcher-macos-universal.tar.gz
