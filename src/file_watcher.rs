@@ -14,6 +14,7 @@ pub fn start_watcher(sender: Sender<WatcherMessage>) -> notify::Result<impl Watc
 
     let projects_dir = home_dir.join(".claude").join("projects");
     let codex_sessions_dir = home_dir.join(".codex").join("sessions");
+    let codex_archived_sessions_dir = home_dir.join(".codex").join("archived_sessions");
     let statusline_data = crate::statusline::rate_data_path();
 
     let mut watcher = notify::recommended_watcher(move |res: Result<Event, notify::Error>| {
@@ -48,6 +49,11 @@ pub fn start_watcher(sender: Sender<WatcherMessage>) -> notify::Result<impl Watc
 
     if codex_sessions_dir.exists() {
         watcher.watch(&codex_sessions_dir, RecursiveMode::Recursive)?;
+        watched_any = true;
+    }
+
+    if codex_archived_sessions_dir.exists() {
+        watcher.watch(&codex_archived_sessions_dir, RecursiveMode::NonRecursive)?;
         watched_any = true;
     }
 
