@@ -2,6 +2,7 @@ mod api_client;
 mod app_bundle;
 mod auth;
 mod autolaunch;
+mod codex_rate;
 mod file_watcher;
 mod icon;
 mod notification;
@@ -132,14 +133,12 @@ fn main() {
                 "check_update" => {
                     let updater_check = updater_ipc.clone();
                     let proxy_check = proxy_ipc.clone();
-                    std::thread::spawn(move || {
-                        match updater_check.check() {
-                            Some(info) => {
-                                let _ = proxy_check.send_event(AppEvent::UpdateAvailable(info));
-                            }
-                            None => {
-                                let _ = proxy_check.send_event(AppEvent::UpdateNotAvailable);
-                            }
+                    std::thread::spawn(move || match updater_check.check() {
+                        Some(info) => {
+                            let _ = proxy_check.send_event(AppEvent::UpdateAvailable(info));
+                        }
+                        None => {
+                            let _ = proxy_check.send_event(AppEvent::UpdateNotAvailable);
                         }
                     });
                 }
@@ -186,10 +185,9 @@ fn main() {
     api_poller.poll(); // Initial fetch
 
     // --- Initial data load ---
+    let mut codex_cache = codex_rate::CodexRateCache::default();
     let api_data = api_poller.get_data();
-    let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-    tray_app.update_percent(effective_pct);
-    push_to_webview(&webview, &api_data);
+    render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
     // Set version in UI
     let _ = webview.evaluate_script(&format!("setVersion('{}')", env!("CARGO_PKG_VERSION")));
     // Enable auto-launch by default on first run
@@ -277,9 +275,7 @@ fn main() {
                 // Force immediate refresh when opening popover
                 api_poller.poll();
                 let api_data = api_poller.get_data();
-                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                tray_app.update_percent(effective_pct);
-                push_to_webview(&webview, &api_data);
+                render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
             } else {
                 window.set_visible(false);
             }
@@ -300,9 +296,8 @@ fn main() {
                 // StatusLine data file was updated by Claude Code
                 if let Some(data) = statusline::read_rate_data() {
                     api_poller.set_statusline_data(data.clone());
-                    let effective_pct = data.five_hour_percent.unwrap_or(0);
-                    tray_app.update_percent(effective_pct);
-                    push_to_webview(&webview, &data);
+                    let effective_pct =
+                        render_rate_state(&webview, &tray_app, &mut codex_cache, &data);
                     notifier.check_and_notify(effective_pct);
                 } else {
                     api_poller.clear_statusline();
@@ -317,33 +312,26 @@ fn main() {
 
                 api_poller.poll();
                 let api_data = api_poller.get_data();
-                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                tray_app.update_percent(effective_pct);
-                push_to_webview(&webview, &api_data);
+                let effective_pct =
+                    render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
                 notifier.check_and_notify(effective_pct);
             }
 
             Event::UserEvent(AppEvent::TimerTick) => {
                 api_poller.poll();
                 let api_data = api_poller.get_data();
-                let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                tray_app.update_percent(effective_pct);
-                push_to_webview(&webview, &api_data);
+                render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
             }
 
             Event::UserEvent(AppEvent::ManualRefresh) => {
                 if api_poller.force_poll() {
                     let api_data = api_poller.get_data();
-                    let effective_pct = api_data.five_hour_percent.unwrap_or(0);
-                    tray_app.update_percent(effective_pct);
-                    push_to_webview(&webview, &api_data);
+                    render_rate_state(&webview, &tray_app, &mut codex_cache, &api_data);
                     let _ = webview.evaluate_script("setRefreshResult(true)");
                 } else {
                     let remaining = api_poller.get_cooldown_remaining().unwrap_or(0);
-                    let _ = webview.evaluate_script(&format!(
-                        "setRefreshResult(false, {})",
-                        remaining
-                    ));
+                    let _ =
+                        webview.evaluate_script(&format!("setRefreshResult(false, {})", remaining));
                 }
             }
 
@@ -353,10 +341,7 @@ fn main() {
             }
 
             Event::UserEvent(AppEvent::UpdateAvailable(ref info)) => {
-                let js = format!(
-                    "showUpdateBanner('{}')",
-                    info.version.replace('\'', "\\'")
-                );
+                let js = format!("showUpdateBanner('{}')", info.version.replace('\'', "\\'"));
                 let _ = webview.evaluate_script(&js);
             }
 
@@ -365,7 +350,10 @@ fn main() {
             }
 
             Event::UserEvent(AppEvent::AuthLoginFailed(ref msg)) => {
-                let escaped = msg.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
+                let escaped = msg
+                    .replace('\\', "\\\\")
+                    .replace('\'', "\\'")
+                    .replace('\n', "\\n");
                 let _ = webview.evaluate_script(&format!("showAuthError('{}')", escaped));
             }
 
@@ -374,8 +362,45 @@ fn main() {
     });
 }
 
-fn push_to_webview(webview: &wry::WebView, api_data: &api_client::ApiRateLimitData) {
-    if let Ok(json) = serde_json::to_string(api_data) {
+fn render_rate_state(
+    webview: &wry::WebView,
+    tray_app: &tray::TrayApp,
+    codex_cache: &mut codex_rate::CodexRateCache,
+    api_data: &api_client::ApiRateLimitData,
+) -> u32 {
+    let codex_data = codex_cache.load_latest();
+    let effective_pct = effective_percent(api_data, codex_data.as_ref());
+    tray_app.update_percent(effective_pct);
+    push_to_webview(webview, api_data, codex_data.as_ref());
+    effective_pct
+}
+
+fn effective_percent(
+    api_data: &api_client::ApiRateLimitData,
+    codex_data: Option<&codex_rate::CodexRateLimitData>,
+) -> u32 {
+    let claude_pct = api_data.five_hour_percent.unwrap_or(0);
+    let codex_pct = codex_data.and_then(|d| d.five_hour_percent).unwrap_or(0);
+    claude_pct.max(codex_pct)
+}
+
+#[derive(serde::Serialize)]
+struct DashboardPayload<'a> {
+    claude: &'a api_client::ApiRateLimitData,
+    codex: Option<&'a codex_rate::CodexRateLimitData>,
+}
+
+fn push_to_webview(
+    webview: &wry::WebView,
+    api_data: &api_client::ApiRateLimitData,
+    codex_data: Option<&codex_rate::CodexRateLimitData>,
+) {
+    let payload = DashboardPayload {
+        claude: api_data,
+        codex: codex_data,
+    };
+
+    if let Ok(json) = serde_json::to_string(&payload) {
         let _ = webview.evaluate_script(&format!("updateData({})", json));
     }
 }
