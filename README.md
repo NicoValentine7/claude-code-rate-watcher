@@ -1,12 +1,13 @@
-# Claude Code Rate Watcher
+# Rate Watcher
 
-A macOS menu bar app that monitors your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and Codex rate limit usage in real time.
+A macOS menu bar app that monitors your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and Codex rate limit usage in real time. Distributed as `claude-code-rate-watcher`.
 
 ![Screenshot](docs/screenshot.png)
 
 ## Features
 
-- **Real-time tracking** — Monitors token usage across a sliding 5-hour window directly from your menu bar
+- **Real-time tracking** — Monitors rate limit usage across a sliding 5-hour window directly from your menu bar
+- **Source clarity** — Shows whether the menu bar percentage is currently coming from Claude Code, Codex, or both
 - **Weekly limit monitoring** — Also tracks the 168-hour (weekly) token usage window
 - **Codex support** — Reads Codex local session rate limit data from `~/.codex/sessions/` and `~/.codex/archived_sessions/`
 - **Color-coded icon** — Menu bar icon changes color based on usage level (green → orange → red)
@@ -50,25 +51,9 @@ cargo build --release
 
 For Claude Code, the app uses Claude Code's statusline/API rate limit data.
 
-For Codex, the app watches `~/.codex/sessions/**/*.jsonl` and `~/.codex/archived_sessions/*.jsonl`, then reads the `rate_limits` snapshots written by Codex. Codex reports the 5-hour and weekly percentages directly, so no token-weight heuristic is needed for Codex.
+For Codex, the app watches `~/.codex/sessions/**/*.jsonl` and `~/.codex/archived_sessions/*.jsonl`, then reads the `rate_limits` snapshots written by Codex.
 
-The legacy local Claude estimate code uses cost-weighted token estimates:
-
-| Token Type | Weight |
-|---|---|
-| Input tokens | 1x |
-| Output tokens | 5x |
-| Cache creation | 1x |
-| Cache read | 0.1x |
-
-### Estimated Rate Limits (Max plan)
-
-| Window | Estimated Limit |
-|---|---|
-| 5 hours | 25,000,000 weighted tokens |
-| Weekly (168h) | 225,000,000 weighted tokens |
-
-> These are heuristic estimates kept for the local estimate code in `src/usage_tracker.rs`. The current UI prioritizes reported rate-limit percentages from Claude Code and Codex.
+Both sources report 5-hour and weekly percentages directly. The menu bar shows the higher 5-hour value, and the popover labels which source is driving that menu bar percentage.
 
 ## Updating
 

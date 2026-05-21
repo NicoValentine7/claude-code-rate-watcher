@@ -2,11 +2,11 @@
 
 ## Current State
 
-Claude Code Rate Watcher is now a macOS menu bar app that combines reported rate limit data from Claude Code and Codex.
+Rate Watcher is a macOS menu bar app that combines reported rate limit data from Claude Code and Codex. The repository and Homebrew package still use `claude-code-rate-watcher`.
 
 - Claude Code data comes from the Claude usage API/statusline integration.
 - Codex data comes from local `rate_limits` snapshots in `~/.codex/sessions/**/*.jsonl` and `~/.codex/archived_sessions/*.jsonl`.
-- The menu bar percentage uses the higher 5-hour value between Claude Code and Codex.
+- The menu bar percentage uses the higher 5-hour value between Claude Code and Codex, and the popover labels the source driving that value.
 - Release packaging is tag-driven through `.github/workflows/release.yml`, producing `claude-code-rate-watcher-macos-universal.tar.gz` and updating the Homebrew tap.
 
 ## Maintenance Priorities
@@ -17,7 +17,7 @@ Claude Code Rate Watcher is now a macOS menu bar app that combines reported rate
    - Homebrew Formula output should be checked after every release.
 
 2. Keep reported usage fresh and explainable.
-   - Prefer provider-reported percentages over token estimates.
+   - Prefer provider-reported percentages.
    - Treat expired reset windows as 0%.
    - Avoid reparsing large local session files unless their metadata changes.
 
@@ -27,6 +27,6 @@ Claude Code Rate Watcher is now a macOS menu bar app that combines reported rate
 
 ## Next Good Candidates
 
-- Add tests for file watcher path selection if watcher behavior grows again.
-- Consider showing whether the menu bar percentage currently comes from Claude Code or Codex.
-- Replace any remaining hard-coded version strings with `CARGO_PKG_VERSION` or release metadata.
+- Keep the Homebrew tap description aligned with Claude Code + Codex support.
+- Consider adding a release smoke check that downloads the tarball and runs `ccrw --version`.
+- Consider linking from the popover to both Claude and Codex usage/help locations if Codex exposes a stable one.
